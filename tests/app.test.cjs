@@ -307,9 +307,12 @@ test("empty HTML count badge remains hidden", () => {
   assert.match(css, /\.source-tab span\[hidden\]\s*\{\s*display:\s*none;/);
 });
 
-test("problem sample includes an explicit AI-copy zero-width scenario", () => {
+test("problem sample tells a coherent high-stakes AI-copy scenario", () => {
   const source = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
-  assert.match(source, /AI 输出复制示例：这段\\u200B文字/);
+  assert.match(source, /先别直接使用：这段内容从 AI 回答复制而来/);
+  assert.match(source, /却藏着\\u200B肉眼看不见的字符/);
+  assert.match(source, /原字符已经丢失\\u2060\\uFFFD/);
+  assert.match(source, /可疑文件：src\/\\u202Etxt\.exe\\u202C/);
 });
 
 test("deployed CSS and JavaScript URLs carry the same cache-busting version", () => {

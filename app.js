@@ -744,7 +744,7 @@ showStructure.addEventListener("change", () => renderXray(state.tokens));
 
 sampleButton.addEventListener("click", () => {
   state.html = '<p style="font-family: Arial">Invoice&nbsp;<strong>#2048</strong><span style="display:none">tracking</span></p>';
-  input.value = "AI 输出复制示例：这段\u200B文字看起来完全正常。\r\n文本传输失败\u2060\uFFFD，可能来自错误编码。\r\nInvoice\u00A0#2048 — approved\r\nPath: src/\u202Etxt.exe\u202C";
+  input.value = "先别直接使用：这段内容从 AI 回答复制而来，看起来完全正常，却藏着\u200B肉眼看不见的字符。\r\n编码警告：这里的原字符已经丢失\u2060\uFFFD，复制后的内容可能无法恢复。\r\n订单状态：Invoice\u00A0#2048 — approved\r\n可疑文件：src/\u202Etxt.exe\u202C";
   clipboardStatus.textContent = "已载入演示样本";
   analyze();
   input.focus();
