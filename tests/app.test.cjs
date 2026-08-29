@@ -317,6 +317,16 @@ test("clipboard format switch has structured labels and an integrated focus stat
   assert.match(css, /\.source-tab:focus-visible\s*\{[^}]*outline:\s*0/s);
 });
 
+test("severity colors stay consistent across x-ray tokens, legend, and findings", () => {
+  const css = fs.readFileSync(path.join(__dirname, "..", "styles.css"), "utf8");
+
+  for (const severity of ["risk", "notice", "structure"]) {
+    assert.match(css, new RegExp(`\\.xray-token\\.severity-${severity}\\s*\\{[^}]*var\\(--severity-${severity}\\)`, "s"));
+    assert.match(css, new RegExp(`\\.legend-${severity}\\s*\\{[^}]*var\\(--severity-${severity}\\)`, "s"));
+  }
+  assert.doesNotMatch(css, /\.xray-token\.type-(?:zero|space|bidi|punct|unknown)\s*\{[^}]*background:/s);
+});
+
 test("problem sample tells a coherent high-stakes AI-copy scenario", () => {
   const source = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
   assert.match(source, /先别直接使用：这段内容从 AI 回答复制而来/);
