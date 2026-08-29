@@ -991,11 +991,40 @@ textarea::placeholder {
 
 footer {
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 24px;
   padding: 26px 0 44px;
   border-top: 1px solid var(--line);
   color: var(--ink-soft);
   font: 0.68rem var(--mono);
+}
+
+footer p {
+  margin: 0;
+}
+
+.footer-meta {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.footer-link {
+  color: var(--blue-deep);
+  font-weight: 700;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.footer-link:hover {
+  color: var(--blue);
+}
+
+.footer-link:focus-visible {
+  border-radius: 2px;
+  outline: 3px solid var(--orange);
+  outline-offset: 3px;
 }
 
 .toast {
@@ -1201,8 +1230,15 @@ footer {
   }
 
   footer {
-    display: block;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
     line-height: 1.6;
+  }
+
+  .footer-meta {
+    flex-wrap: wrap;
+    gap: 6px 14px;
   }
 }
 
