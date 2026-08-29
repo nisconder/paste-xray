@@ -474,7 +474,7 @@ function friendlyFindingName(finding) {
 function buildAiCopyHint(findings) {
   const count = findings.filter((finding) => AI_COPY_MARKERS.has(finding.short)).length;
   if (!count) return "";
-  return `检测到 ${count} 个可能随 AI 对话、网页或 PDF 复制带入的不可见字符。它只能说明文本中存在隐藏 Unicode，不能证明内容由 AI 生成。`;
+  return `这段文字里藏着 ${count} 个肉眼看不见的 Unicode 字符。它们可能在复制 AI 回答、网页或 PDF 时被悄悄带入，造成搜索匹配失败、链接失效，或让代码和命令报错。先别直接使用，也别急着全部删除：请查看下方位置并核对来源。这些字符本身不能证明内容由 AI 生成。`;
 }
 
 function contextSnippet(finding) {

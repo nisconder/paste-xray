@@ -441,7 +441,7 @@ textarea::placeholder {
   display: block;
   margin-bottom: 5px;
   color: var(--marker);
-  content: "AI COPY CHECK / AI 复制提示";
+  content: "AI COPY ALERT / 隐藏字符警报";
   font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.08em;

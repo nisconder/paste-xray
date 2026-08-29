@@ -146,7 +146,10 @@ test("AI-copy hint explains possible sources without claiming AI authorship", ()
   );
 
   assert.match(hint, /3 个/);
-  assert.match(hint, /AI 对话、网页或 PDF/);
+  assert.match(hint, /肉眼看不见/);
+  assert.match(hint, /复制 AI 回答、网页或 PDF/);
+  assert.match(hint, /搜索匹配失败、链接失效/);
+  assert.match(hint, /先别直接使用/);
   assert.match(hint, /不能证明内容由 AI 生成/);
 });
 
