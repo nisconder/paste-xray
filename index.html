@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Paste X-Ray reveals zero-width characters, non-breaking spaces, bidi controls, unusual line endings, and hidden clipboard HTML."
+    />
+    <meta name="color-scheme" content="light" />
+    <title>Paste X-Ray — 看见文本里的隐形字符</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="site-header">
+        <a class="brand" href="#top" aria-label="Paste X-Ray 首页">
+          <span class="brand-mark" aria-hidden="true">PX</span>
+          <span>Paste X-Ray</span>
+        </a>
+        <div class="privacy-note">
+          <span class="privacy-dot" aria-hidden="true"></span>
+          仅在本机处理
+        </div>
+      </header>
+
+      <main id="top">
+        <section class="hero" aria-labelledby="hero-title">
+          <div class="hero-copy">
+            <p class="eyebrow">Clipboard forensics / 剪贴板取证</p>
+            <h1 id="hero-title">
+              <span class="hero-title-line">让不可见字符</span>
+              <span class="hero-title-line hero-title-accent">留下指纹。</span>
+            </h1>
+            <p class="hero-lede">
+              粘贴一段看似正常的文本，立即找出零宽字符、NBSP、双向文本控制符、异常换行，以及剪贴板暗藏的 HTML。
+            </p>
+          </div>
+          <div class="specimen" aria-hidden="true">
+            <div class="specimen-label">X-RAY SPECIMEN</div>
+            <div class="specimen-line">
+              <span>hello</span><i>ZWSP</i><span>world</span><i>NBSP</i><span>!</span>
+            </div>
+            <div class="specimen-ruler">
+              <span>00</span><span>05</span><span>06</span><span>11</span><span>12</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="workbench" aria-label="文本检测工作台">
+          <div class="input-panel panel">
+            <div class="panel-heading">
+              <div>
+                <p class="step-label">01 / INPUT</p>
+                <h2>粘贴原文</h2>
+              </div>
+              <button class="text-button" id="sample-button" type="button">载入问题样本</button>
+            </div>
+
+            <label class="sr-only" for="text-input">要检查的文本</label>
+            <div class="textarea-wrap">
+              <textarea
+                id="text-input"
+                spellcheck="false"
+                autocomplete="off"
+                placeholder="在这里粘贴文本…"
+              ></textarea>
+              <div class="empty-hint" id="empty-hint" aria-hidden="true">
+                <span>Ctrl</span><b>+</b><span>V</span>
+              </div>
+            </div>
+            <div class="input-footer">
+              <span id="character-count">0 字符</span>
+              <span id="clipboard-status">等待输入</span>
+            </div>
+          </div>
+
+          <aside class="verdict-panel panel" aria-live="polite">
+            <p class="step-label">02 / VERDICT</p>
+            <div class="verdict-number" id="issue-count">0</div>
+            <h2 id="verdict-title">等待样本</h2>
+            <p id="verdict-copy">粘贴文本后，这里会给出检测结论。</p>
+            <div class="meter" aria-hidden="true">
+              <span id="meter-fill"></span>
+            </div>
+            <dl class="quick-stats">
+              <div>
+                <dt><i class="stat-dot stat-risk"></i>较高风险</dt>
+                <dd id="risk-count">—</dd>
+              </div>
+              <div>
+                <dt><i class="stat-dot stat-notice"></i>需要确认</dt>
+                <dd id="notice-count">—</dd>
+              </div>
+              <div>
+                <dt><i class="stat-dot stat-structure"></i>正常结构</dt>
+                <dd id="structure-count">—</dd>
+              </div>
+            </dl>
+          </aside>
+        </section>
+
+        <section class="results" id="results" aria-labelledby="results-title">
+          <div class="section-heading">
+            <div>
+              <p class="step-label">03 / EVIDENCE</p>
+              <h2 id="results-title">字符显影带</h2>
+            </div>
+            <div class="result-tools">
+              <label class="structure-toggle">
+                <input id="show-structure" type="checkbox" />
+                <span>显示换行与 Tab</span>
+              </label>
+              <div class="legend" aria-label="判断级别图例">
+                <span><i class="legend-risk"></i>较高风险</span>
+                <span><i class="legend-notice"></i>需要确认</span>
+                <span><i class="legend-structure"></i>正常结构</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="xray-frame">
+            <div class="xray-gutter" aria-hidden="true">RAW<br />TEXT</div>
+            <div class="xray-output" id="xray-output" tabindex="0">
+              <p class="result-empty">还没有证据。粘贴文本后，所有隐藏字符都会在这里显形。</p>
+            </div>
+          </div>
+
+          <div class="evidence-grid">
+            <section class="findings-card" aria-labelledby="findings-title">
+              <div class="card-heading">
+                <h3 id="findings-title">检测明细</h3>
+                <span id="finding-badge">0 项</span>
+              </div>
+              <div class="findings-list" id="findings-list">
+                <p class="result-empty">暂未识别到特殊字符。</p>
+              </div>
+            </section>
+
+            <section class="source-card" aria-labelledby="source-title">
+              <div class="card-heading">
+                <div class="source-tabs" role="tablist" aria-label="剪贴板格式">
+                  <button
+                    class="source-tab is-active"
+                    id="plain-tab"
+                    role="tab"
+                    aria-selected="true"
+                    aria-controls="source-output"
+                    type="button"
+                    data-source="plain"
+                  >
+                    text/plain
+                  </button>
+                  <button
+                    class="source-tab"
+                    id="html-tab"
+                    role="tab"
+                    aria-selected="false"
+                    aria-controls="source-output"
+                    type="button"
+                    data-source="html"
+                  >
+                    text/html <span id="html-tab-count" hidden></span>
+                  </button>
+                </div>
+              </div>
+              <pre class="source-output" id="source-output" tabindex="0">粘贴后显示剪贴板原始数据</pre>
+            </section>
+          </div>
+        </section>
+
+        <section class="cleaner" aria-labelledby="cleaner-title">
+          <div class="cleaner-copy">
+            <p class="step-label">04 / CLEAN</p>
+            <h2 id="cleaner-title">清理后再复制</h2>
+            <p>所有改写默认关闭。先看判断理由，再决定是否清理；输入框中的原文始终不变。</p>
+          </div>
+
+          <fieldset class="clean-options">
+            <legend class="sr-only">清理选项</legend>
+            <label>
+              <input id="clean-zero" type="checkbox" />
+              <span><b>移除全部零宽字符</b><small>可能破坏 emoji 或文字连接</small></span>
+            </label>
+            <label>
+              <input id="clean-bidi" type="checkbox" />
+              <span><b>移除全部方向控制符</b><small>可能影响阿拉伯语等多语言文本</small></span>
+            </label>
+            <label>
+              <input id="clean-replacement" type="checkbox" />
+              <span><b>删除 � 占位符</b><small>只能删除 U+FFFD，无法还原丢失字符</small></span>
+            </label>
+            <label>
+              <input id="clean-space" type="checkbox" />
+              <span><b>标准化特殊空格</b><small>NBSP、NNBSP → 空格</small></span>
+            </label>
+            <label>
+              <input id="clean-punct" type="checkbox" />
+              <span><b>标准化智能标点</b><small>弯引号、长横线等</small></span>
+            </label>
+            <label>
+              <input id="clean-lines" type="checkbox" />
+              <span><b>统一换行符</b><small>CRLF、CR → LF</small></span>
+            </label>
+          </fieldset>
+
+          <div class="clean-preview">
+            <div class="preview-heading">
+              <span>清理预览</span>
+              <span id="removed-count">将改变 0 处</span>
+            </div>
+            <pre id="clean-output">清理后的文本会显示在这里</pre>
+            <button class="copy-button" id="copy-button" type="button" disabled>
+              <span id="copy-label">复制清理后的文本</span>
+              <kbd>Ctrl C</kbd>
+            </button>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <p>Paste X-Ray 不上传、不保存、不追踪你的文本。</p>
+        <p>Zero servers. Zero logs. Zero surprises.</p>
+      </footer>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js" defer></script>
+  </body>
+</html>
