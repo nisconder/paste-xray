@@ -16,6 +16,7 @@ class FakeElement {
     this.classList = new FakeClassList();
     this.dataset = {};
     this.disabled = false;
+    this.hidden = false;
     this.style = {};
     this.textContent = "";
     this.value = "";
@@ -110,6 +111,83 @@ test("classifies zero-width, NBSP, bidi, punctuation, and CRLF", () => {
       ["line", "CRLF"],
     ],
   );
+});
+
+test("classifies every supported zero-width format and supplementary Unicode tag", () => {
+  const { context } = createContext();
+  const findings = evaluate(
+    context,
+    `buildFindings(tokenize("\\u034F\\u00AD\\u180E\\u200B\\u200C\\u200D\\u2060\\u2061\\u2062\\u2063\\u2064\\uFEFF\\u{E0061}\\u{E007F}"))`,
+  );
+
+  assert.deepEqual(findings.map(({ short, code }) => [short, code]), [
+    ["CGJ", "U+034F"],
+    ["SHY", "U+00AD"],
+    ["MVS", "U+180E"],
+    ["ZWSP", "U+200B"],
+    ["ZWNJ", "U+200C"],
+    ["ZWJ", "U+200D"],
+    ["WJ", "U+2060"],
+    ["FUNC", "U+2061"],
+    ["ITIMES", "U+2062"],
+    ["ISEP", "U+2063"],
+    ["IPLUS", "U+2064"],
+    ["BOM", "U+FEFF"],
+    ["TAG", "U+E0061"],
+    ["TAGEND", "U+E007F"],
+  ]);
+});
+
+test("AI-copy hint explains possible sources without claiming AI authorship", () => {
+  const { context } = createContext();
+  const hint = vm.runInContext(
+    `buildAiCopyHint(assessFindings(buildFindings(tokenize("AI\\u200B回答\\u2060结束\\u{E0061}"))))`,
+    context,
+  );
+
+  assert.match(hint, /3 个/);
+  assert.match(hint, /AI 对话、网页或 PDF/);
+  assert.match(hint, /不能证明内容由 AI 生成/);
+});
+
+test("legitimate emoji and language joiners do not trigger the AI-copy hint", () => {
+  const { context } = createContext();
+  const hint = vm.runInContext(
+    `buildAiCopyHint(assessFindings(buildFindings(tokenize("emoji\\u200D组合\\u200C文字\\u180E"))))`,
+    context,
+  );
+
+  assert.equal(hint, "");
+});
+
+test("emoji ZWJ keeps the user-facing AI-copy callout hidden", () => {
+  const { context, elements } = createContext();
+  elements.get("#text-input").value = "开发者 👩‍💻";
+  vm.runInContext("analyze()", context);
+
+  assert.equal(elements.get("#origin-hint").hidden, true);
+  assert.equal(elements.get("#origin-hint").textContent, "");
+});
+
+test("AI-copy hint is visible in the verdict and keeps code-point positions accurate", () => {
+  const { context, elements } = createContext();
+  elements.get("#text-input").value = "🤖AI\u200B输出\u200B";
+  vm.runInContext("analyze()", context);
+
+  assert.equal(elements.get("#origin-hint").hidden, false);
+  assert.match(elements.get("#origin-hint").textContent, /2 个/);
+  assert.match(elements.get("#origin-hint").textContent, /不能证明内容由 AI 生成/);
+  const groups = evaluate(context, "aggregateFindings(state.findings)");
+  assert.deepEqual(groups.find(({ short }) => short === "ZWSP").positions, [3, 6]);
+});
+
+test("zero-width cleaning removes supplementary Unicode tags and counts each change", () => {
+  const { context } = createContext();
+  const cleaned = vm.runInContext(`cleanText("A\\u200BB\\u{E0061}C\\u{E007F}")`, context);
+  const changes = vm.runInContext(`countPlannedChanges("A\\u200BB\\u{E0061}C\\u{E007F}")`, context);
+
+  assert.equal(cleaned, "ABC");
+  assert.equal(changes, 3);
 });
 
 test("grades consistent, mixed, and exotic line endings separately", () => {
@@ -224,4 +302,9 @@ test("Chinese hero title uses two non-breaking layout lines", () => {
 test("empty HTML count badge remains hidden", () => {
   const css = fs.readFileSync(path.join(__dirname, "..", "styles.css"), "utf8");
   assert.match(css, /\.source-tab span\[hidden\]\s*\{\s*display:\s*none;/);
+});
+
+test("problem sample includes an explicit AI-copy zero-width scenario", () => {
+  const source = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+  assert.match(source, /AI 输出复制示例：这段\\u200B文字/);
 });

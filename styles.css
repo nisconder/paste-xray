@@ -426,6 +426,31 @@ textarea::placeholder {
   line-height: 1.6;
 }
 
+.verdict-panel .origin-hint {
+  min-height: 0;
+  margin-top: 18px;
+  padding: 11px 13px 12px 15px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(7, 18, 55, 0.2);
+  box-shadow: inset 3px 0 0 var(--marker);
+  color: rgba(255, 255, 255, 0.9);
+  font: 0.72rem/1.55 var(--mono);
+}
+
+.verdict-panel .origin-hint::before {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--marker);
+  content: "AI COPY CHECK / AI 复制提示";
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.verdict-panel .origin-hint[hidden] {
+  display: none;
+}
+
 .meter {
   height: 7px;
   margin: 30px 0;

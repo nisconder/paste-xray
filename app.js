@@ -5,6 +5,7 @@ const clipboardStatus = document.querySelector("#clipboard-status");
 const issueCount = document.querySelector("#issue-count");
 const verdictTitle = document.querySelector("#verdict-title");
 const verdictCopy = document.querySelector("#verdict-copy");
+const originHint = document.querySelector("#origin-hint");
 const meterFill = document.querySelector("#meter-fill");
 const verdictPanel = document.querySelector(".verdict-panel");
 const riskCount = document.querySelector("#risk-count");
@@ -34,14 +35,21 @@ const cleanPunct = document.querySelector("#clean-punct");
 const cleanLines = document.querySelector("#clean-lines");
 
 const ZERO_WIDTH = new Map([
+  ["\u034F", ["CGJ", "Combining grapheme joiner"]],
   ["\u00AD", ["SHY", "Soft hyphen"]],
   ["\u180E", ["MVS", "Mongolian vowel separator"]],
   ["\u200B", ["ZWSP", "Zero width space"]],
   ["\u200C", ["ZWNJ", "Zero width non-joiner"]],
   ["\u200D", ["ZWJ", "Zero width joiner"]],
   ["\u2060", ["WJ", "Word joiner"]],
+  ["\u2061", ["FUNC", "Function application"]],
+  ["\u2062", ["ITIMES", "Invisible times"]],
+  ["\u2063", ["ISEP", "Invisible separator"]],
+  ["\u2064", ["IPLUS", "Invisible plus"]],
   ["\uFEFF", ["BOM", "Zero width no-break space / BOM"]],
 ]);
+
+const AI_COPY_MARKERS = new Set(["SHY", "ZWSP", "WJ", "FUNC", "ITIMES", "ISEP", "IPLUS", "TAG", "TAGEND"]);
 
 const SPECIAL_SPACES = new Map([
   ["\u0009", ["TAB", "Horizontal tab"]],
@@ -113,6 +121,11 @@ function codePointLabel(value) {
   return `U+${value.codePointAt(0).toString(16).toUpperCase().padStart(4, "0")}`;
 }
 
+function isUnicodeTag(value) {
+  const point = value.codePointAt(0);
+  return point >= 0xE0000 && point <= 0xE007F;
+}
+
 function classify(value, index) {
   if (value === "\r\n") {
     return { value, index, type: "line", short: "CRLF", name: "Windows line break", code: "U+000D U+000A" };
@@ -141,6 +154,18 @@ function classify(value, index) {
   if (ZERO_WIDTH.has(value)) {
     const [short, name] = ZERO_WIDTH.get(value);
     return { value, index, type: "zero", short, name, code: codePointLabel(value) };
+  }
+
+  if (isUnicodeTag(value)) {
+    const isTerminator = value.codePointAt(0) === 0xE007F;
+    return {
+      value,
+      index,
+      type: "zero",
+      short: isTerminator ? "TAGEND" : "TAG",
+      name: isTerminator ? "Cancel tag" : "Unicode tag character",
+      code: codePointLabel(value),
+    };
   }
 
   if (SPECIAL_SPACES.has(value)) {
@@ -253,11 +278,37 @@ function assessFindings(findings) {
         recovery = "无需处理";
       }
     } else if (finding.type === "zero") {
-      if (["ZWJ", "ZWNJ"].includes(finding.short)) {
+      if (["TAG", "TAGEND"].includes(finding.short)) {
+        severity = "risk";
+        explanation = "默认不可见的 Unicode 标签字符，可在可见文本中夹带额外信息";
+        origin = "可能来自文本水印、隐写、网页或 AI 对话复制；仅凭它不能判断内容是否由 AI 生成";
+        action = "普通文章、代码和标识符通常不需要它；核对来源后可删除";
+        recovery = "可清理";
+      } else if (["ZWJ", "ZWNJ"].includes(finding.short)) {
         explanation = "可能属于 emoji 或某些语言的正常文字连接";
         origin = "常见于 emoji 组合、阿拉伯语和南亚文字";
         action = "不要批量删除；先确认两侧字符和原文语言";
         recovery = "谨慎清理";
+      } else if (["CGJ", "MVS"].includes(finding.short)) {
+        explanation = "可能参与特定语言的字符组合或断词，肉眼通常不可见";
+        origin = "常见于 Unicode 规范化、蒙古文或专业排版";
+        action = "多语言文本中先保留；用于代码、链接或标识符时再核对";
+        recovery = "谨慎清理";
+      } else if (["FUNC", "ITIMES", "ISEP", "IPLUS"].includes(finding.short)) {
+        explanation = "不可见的数学排版控制符，也会影响搜索和字符串精确比较";
+        origin = "可能来自公式编辑器、网页、PDF 或 AI 对话复制；仅凭它不能判断内容是否由 AI 生成";
+        action = "数学公式中可能有用；普通文章、代码、链接或标识符中建议删除";
+        recovery = "可清理";
+      } else if (finding.short === "ZWSP") {
+        explanation = "肉眼不可见；可用于断词，也会让看似相同的字符串不相等";
+        origin = "可能来自 AI 对话、网页、PDF 或富文本复制；部分语言也会用它断词。仅凭它不能判断内容是否由 AI 生成";
+        action = "用于代码、链接、命令或标识符时建议删除；自然语言文本先确认排版用途";
+        recovery = "可清理";
+      } else if (["SHY", "WJ"].includes(finding.short)) {
+        explanation = "肉眼通常不可见，但会参与换行、搜索和字符串精确比较";
+        origin = "可能来自 AI 对话、网页、PDF 或富文本排版；仅凭它不能判断内容是否由 AI 生成";
+        action = "普通文章中可结合排版判断；代码、链接、命令或标识符中建议删除";
+        recovery = "可清理";
       } else if (finding.short === "BOM" && finding.index > 0) {
         severity = "risk";
         explanation = "出现在文本中部，可能影响比较、解析或搜索";
@@ -400,6 +451,13 @@ function friendlyFindingName(finding) {
     ZWSP: "零宽空格",
     ZWJ: "零宽连接符",
     ZWNJ: "零宽非连接符",
+    TAG: "Unicode 隐藏标签",
+    TAGEND: "Unicode 标签结束符",
+    FUNC: "不可见函数应用符",
+    ITIMES: "不可见乘号",
+    ISEP: "不可见分隔符",
+    IPLUS: "不可见加号",
+    CGJ: "组合字素连接符",
     BOM: "字节序标记",
     NBSP: "不换行空格",
     NNBSP: "窄不换行空格",
@@ -411,6 +469,12 @@ function friendlyFindingName(finding) {
     LRO: "从左到右覆盖符",
   };
   return names[finding.short] || finding.name;
+}
+
+function buildAiCopyHint(findings) {
+  const count = findings.filter((finding) => AI_COPY_MARKERS.has(finding.short)).length;
+  if (!count) return "";
+  return `检测到 ${count} 个可能随 AI 对话、网页或 PDF 复制带入的不可见字符。它只能说明文本中存在隐藏 Unicode，不能证明内容由 AI 生成。`;
 }
 
 function contextSnippet(finding) {
@@ -510,6 +574,7 @@ function renderVerdict(findings) {
   const replacements = findings.filter((item) => item.short === "REPL").length;
   const total = risks + notices;
   const tagCount = countHtmlTags(state.html);
+  const aiCopyHint = buildAiCopyHint(findings);
 
   issueCount.textContent = total;
   riskCount.textContent = state.plain ? risks : "—";
@@ -519,11 +584,14 @@ function renderVerdict(findings) {
   htmlTabCount.textContent = tagCount ? String(tagCount) : "";
   meterFill.style.width = state.plain ? `${Math.min(100, Math.max(4, risks * 16 + notices * 5))}%` : "0%";
   verdictPanel.dataset.status = risks ? "risk" : notices ? "notice" : "safe";
+  originHint.hidden = !aiCopyHint;
+  originHint.textContent = aiCopyHint;
 
   if (!state.plain) {
     verdictPanel.dataset.status = "waiting";
     verdictTitle.textContent = "等待样本";
     verdictCopy.textContent = "粘贴文本后，这里会给出检测结论。";
+    originHint.hidden = true;
     return;
   }
 
@@ -549,7 +617,7 @@ function cleanText(text) {
   let result = text;
 
   if (cleanZero.checked) {
-    result = [...result].filter((char) => !ZERO_WIDTH.has(char)).join("");
+    result = [...result].filter((char) => !ZERO_WIDTH.has(char) && !isUnicodeTag(char)).join("");
   }
 
   if (cleanBidi.checked) {
@@ -580,7 +648,7 @@ function countPlannedChanges(text) {
   const points = [...text];
 
   points.forEach((char) => {
-    if (cleanZero.checked && ZERO_WIDTH.has(char)) count += 1;
+    if (cleanZero.checked && (ZERO_WIDTH.has(char) || isUnicodeTag(char))) count += 1;
     else if (cleanBidi.checked && BIDI.has(char)) count += 1;
     else if (cleanReplacement.checked && char === "\uFFFD") count += 1;
     else if (cleanSpace.checked && SPECIAL_SPACES.has(char) && char !== "\t") count += 1;
@@ -676,7 +744,7 @@ showStructure.addEventListener("change", () => renderXray(state.tokens));
 
 sampleButton.addEventListener("click", () => {
   state.html = '<p style="font-family: Arial">Invoice&nbsp;<strong>#2048</strong><span style="display:none">tracking</span></p>';
-  input.value = "文本传输失败\u2060\uFFFD，可能来自错误编码。\r\nInvoice\u00A0#2048\u200B — approved\r\nPath: src/\u202Etxt.exe\u202C";
+  input.value = "AI 输出复制示例：这段\u200B文字看起来完全正常。\r\n文本传输失败\u2060\uFFFD，可能来自错误编码。\r\nInvoice\u00A0#2048 — approved\r\nPath: src/\u202Etxt.exe\u202C";
   clipboardStatus.textContent = "已载入演示样本";
   analyze();
   input.focus();

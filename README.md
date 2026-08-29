@@ -31,7 +31,8 @@ Paste X-Ray 可以帮助你在粘贴前确认：
 
 ## 当前功能
 
-- 检测常见零宽字符（ZWSP、ZWNJ、ZWJ、WJ、BOM 等）
+- 检测常见零宽字符（ZWSP、ZWNJ、ZWJ、WJ、BOM 等）、不可见数学控制符与 Unicode 标签字符
+- 对可能随 AI 对话、网页或 PDF 复制带入的隐藏字符显示来源提示，同时明确说明这不能证明内容由 AI 生成
 - 检测 NBSP、NNBSP 和多种 Unicode 特殊空格
 - 检测 Bidi 方向控制符
 - 标记 CRLF、CR、LF 与不可打印控制字符
@@ -64,6 +65,14 @@ python -m http.server
 ```
 
 命令会显示访问地址；在浏览器中打开该地址即可。端口只是临时的本地入口，不影响工具功能。
+
+## 运行测试
+
+```powershell
+node --test tests/app.test.cjs
+```
+
+测试覆盖全部已支持的零宽字符、Unicode 标签字符、AI 复制提示、emoji / 多语言误报保护、清理结果与字符位置。
 
 ## 反馈
 
