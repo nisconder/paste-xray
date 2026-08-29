@@ -93,33 +93,32 @@ input:focus-visible {
   box-shadow: 4px 4px 0 var(--marker);
 }
 
-.brand-monogram {
+.brand-symbol {
   width: 30px;
   height: 30px;
 }
 
-.brand-monogram-p {
-  fill: currentColor;
-}
-
-.brand-monogram-x {
+.brand-symbol-brackets,
+.brand-symbol-scan {
   fill: none;
-  stroke: currentColor;
   stroke-linecap: round;
-  stroke-width: 2.6;
+  stroke-linejoin: round;
 }
 
-.brand-monogram-scan {
-  fill: none;
+.brand-symbol-brackets {
+  stroke: var(--white);
+  stroke-width: 2.5;
+}
+
+.brand-symbol-scan {
   stroke: var(--marker);
-  stroke-dasharray: 2 1.6;
-  stroke-width: 1.15;
+  stroke-width: 1.55;
 }
 
-.brand-monogram-target {
-  fill: var(--marker);
+.brand-symbol-hidden {
+  fill: var(--white);
   stroke: var(--blue-deep);
-  stroke-width: 1;
+  stroke-width: 1.1;
 }
 
 .brand:focus-visible {
