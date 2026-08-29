@@ -15,6 +15,7 @@ const findingsList = document.querySelector("#findings-list");
 const findingBadge = document.querySelector("#finding-badge");
 const sourceOutput = document.querySelector("#source-output");
 const sourceTabs = [...document.querySelectorAll(".source-tab")];
+const sourceFormatHelp = document.querySelector("#source-format-help");
 const htmlTabCount = document.querySelector("#html-tab-count");
 const showStructure = document.querySelector("#show-structure");
 const cleanOutput = document.querySelector("#clean-output");
@@ -602,8 +603,12 @@ function renderCleanPreview() {
 }
 
 function renderSource() {
+  sourceFormatHelp.textContent = state.activeSource === "plain"
+    ? "当前输入框中的纯文本，也是字符检测实际分析的内容。"
+    : "粘贴网页或富文本时附带的 HTML 源码，可用于发现隐藏标签、样式和链接。";
+
   if (!state.plain) {
-    sourceOutput.textContent = "粘贴后显示剪贴板原始数据";
+    sourceOutput.textContent = "尚未读取源数据。\n请在上方输入框中粘贴内容；直接输入文字不会产生 text/html。";
     return;
   }
 

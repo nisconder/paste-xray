@@ -144,7 +144,15 @@
             </section>
 
             <section class="source-card" aria-labelledby="source-title">
-              <div class="card-heading">
+              <div class="source-intro">
+                <p class="step-label">CLIPBOARD SOURCE</p>
+                <h3 id="source-title">检查粘贴时附带的内容</h3>
+                <p>
+                  一次粘贴可能同时携带纯文本和 HTML。这里用来判断异常来自文字本身，
+                  还是网页、文档或富文本编辑器附带的隐藏标签、样式和链接。
+                </p>
+              </div>
+              <div class="source-toolbar">
                 <div class="source-tabs" role="tablist" aria-label="剪贴板格式">
                   <button
                     class="source-tab is-active"
@@ -155,7 +163,7 @@
                     type="button"
                     data-source="plain"
                   >
-                    text/plain
+                    纯文本（text/plain）
                   </button>
                   <button
                     class="source-tab"
@@ -166,11 +174,15 @@
                     type="button"
                     data-source="html"
                   >
-                    text/html <span id="html-tab-count" hidden></span>
+                    HTML 源码（text/html）<span id="html-tab-count" hidden></span>
                   </button>
                 </div>
+                <p class="source-format-help" id="source-format-help">
+                  当前输入框中的纯文本，也是字符检测实际分析的内容。
+                </p>
               </div>
-              <pre class="source-output" id="source-output" tabindex="0">粘贴后显示剪贴板原始数据</pre>
+              <pre class="source-output" id="source-output" tabindex="0">尚未读取源数据。
+请在上方输入框中粘贴内容；直接输入文字不会产生 text/html。</pre>
             </section>
           </div>
         </section>
