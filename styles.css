@@ -1021,15 +1021,33 @@ footer p {
 }
 
 .footer-profile-mark {
+  position: relative;
   width: 28px;
   height: 28px;
   display: grid;
   place-items: center;
-  border-radius: 2px;
+  overflow: hidden;
+  border-radius: 3px 9px 3px 3px;
   background: var(--blue);
   color: var(--white);
-  font-size: 0.62rem;
-  letter-spacing: 0.04em;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.footer-profile-mark::after {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 5px;
+  height: 5px;
+  border-top: 1px solid var(--marker);
+  border-right: 1px solid var(--marker);
+  content: "";
+}
+
+.footer-profile-icon {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
 }
 
 .footer-profile-arrow {
