@@ -304,7 +304,17 @@ test("Chinese hero title uses two non-breaking layout lines", () => {
 
 test("empty HTML count badge remains hidden", () => {
   const css = fs.readFileSync(path.join(__dirname, "..", "styles.css"), "utf8");
-  assert.match(css, /\.source-tab span\[hidden\]\s*\{\s*display:\s*none;/);
+  assert.match(css, /\.source-tab-count\[hidden\]\s*\{\s*display:\s*none;/);
+});
+
+test("clipboard format switch has structured labels and an integrated focus state", () => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "..", "styles.css"), "utf8");
+
+  assert.match(html, /source-tab-label">纯文本<\/span>\s*<small>text\/plain<\/small>/);
+  assert.match(html, /source-tab-label">HTML 源码<\/span>\s*<small>text\/html<\/small>/);
+  assert.match(css, /\.source-tab\.is-active\s*\{[^}]*background:\s*var\(--blue\)/s);
+  assert.match(css, /\.source-tab:focus-visible\s*\{[^}]*outline:\s*0/s);
 });
 
 test("problem sample tells a coherent high-stakes AI-copy scenario", () => {

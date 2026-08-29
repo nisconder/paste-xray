@@ -9,7 +9,7 @@
     />
     <meta name="color-scheme" content="light" />
     <title>Paste X-Ray — 看见文本里的隐形字符</title>
-    <link rel="stylesheet" href="styles.css?v=20260829-3" />
+    <link rel="stylesheet" href="styles.css?v=20260829-4" />
   </head>
   <body>
     <div class="page-shell">
@@ -164,7 +164,8 @@
                     type="button"
                     data-source="plain"
                   >
-                    纯文本（text/plain）
+                    <span class="source-tab-label">纯文本</span>
+                    <small>text/plain</small>
                   </button>
                   <button
                     class="source-tab"
@@ -175,7 +176,9 @@
                     type="button"
                     data-source="html"
                   >
-                    HTML 源码（text/html）<span id="html-tab-count" hidden></span>
+                    <span class="source-tab-label">HTML 源码</span>
+                    <small>text/html</small>
+                    <span class="source-tab-count" id="html-tab-count" hidden></span>
                   </button>
                 </div>
                 <p class="source-format-help" id="source-format-help">
@@ -258,6 +261,6 @@
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=20260829-3" defer></script>
+    <script src="app.js?v=20260829-4" defer></script>
   </body>
 </html>
