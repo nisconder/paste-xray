@@ -311,3 +311,12 @@ test("problem sample includes an explicit AI-copy zero-width scenario", () => {
   const source = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
   assert.match(source, /AI 输出复制示例：这段\\u200B文字/);
 });
+
+test("deployed CSS and JavaScript URLs carry the same cache-busting version", () => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const styleVersion = html.match(/styles\.css\?v=([^"']+)/)?.[1];
+  const scriptVersion = html.match(/app\.js\?v=([^"']+)/)?.[1];
+
+  assert.ok(styleVersion);
+  assert.equal(scriptVersion, styleVersion);
+});
