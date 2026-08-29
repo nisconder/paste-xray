@@ -1062,6 +1062,8 @@ textarea::placeholder {
 }
 
 .clean-preview {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   padding: 20px;
   border-radius: 8px;
@@ -1076,7 +1078,8 @@ textarea::placeholder {
 }
 
 .clean-preview pre {
-  height: 168px;
+  flex: 1;
+  min-height: 168px;
   margin: 0 0 14px;
   padding: 14px;
   overflow: auto;
