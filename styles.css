@@ -86,11 +86,46 @@ input:focus-visible {
   height: 38px;
   display: grid;
   place-items: center;
+  overflow: hidden;
   color: var(--white);
   background: var(--blue);
-  border-radius: 5px 13px 5px 5px;
-  font: 700 0.8rem var(--mono);
+  border-radius: 6px 14px 6px 6px;
   box-shadow: 4px 4px 0 var(--marker);
+}
+
+.brand-monogram {
+  width: 30px;
+  height: 30px;
+}
+
+.brand-monogram-p {
+  fill: currentColor;
+}
+
+.brand-monogram-x {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 2.6;
+}
+
+.brand-monogram-scan {
+  fill: none;
+  stroke: var(--marker);
+  stroke-dasharray: 2 1.6;
+  stroke-width: 1.15;
+}
+
+.brand-monogram-target {
+  fill: var(--marker);
+  stroke: var(--blue-deep);
+  stroke-width: 1;
+}
+
+.brand:focus-visible {
+  border-radius: 3px;
+  outline: 3px solid var(--orange);
+  outline-offset: 4px;
 }
 
 .privacy-note {
