@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Paste X-Ray",
+  "version": "1.0.0",
+  "description": "检查选中文字和本地文件中的隐藏字符、冒牌字母与异常排版。所有分析都在浏览器本机完成。",
+  "homepage_url": "https://nisconder.github.io/paste-xray/",
+  "permissions": [
+    "contextMenus",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "extension/background.js"
+  },
+  "action": {
+    "default_title": "打开 Paste X-Ray",
+    "default_icon": {
+      "16": "extension/icons/icon-16.png",
+      "32": "extension/icons/icon-32.png",
+      "48": "extension/icons/icon-48.png",
+      "128": "extension/icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "extension/icons/icon-16.png",
+    "32": "extension/icons/icon-32.png",
+    "48": "extension/icons/icon-48.png",
+    "128": "extension/icons/icon-128.png"
+  }
+}

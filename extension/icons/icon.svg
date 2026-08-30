@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Paste X-Ray">
+  <rect x="24" y="26" width="88" height="88" rx="25" fill="#d8ff59"/>
+  <rect x="16" y="14" width="88" height="88" rx="25" fill="#3157e1"/>
+  <path d="M48 36H35v44h13M72 36h13v44H72" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M31 58h58" fill="none" stroke="#d8ff59" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="60" cy="58" r="8" fill="#fff" stroke="#213da7" stroke-width="4"/>
+</svg>

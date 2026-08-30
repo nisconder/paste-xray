@@ -74,6 +74,7 @@ function createContext() {
   const context = vm.createContext({
     DOMParser: FakeDOMParser,
     TextDecoder,
+    URLSearchParams,
     console,
     document,
     navigator: { clipboard: { writeText: async () => {} } },
@@ -415,4 +416,82 @@ test("deployed CSS and JavaScript URLs carry the same cache-busting version", ()
 
   assert.ok(styleVersion);
   assert.equal(scriptVersion, styleVersion);
+});
+
+test("browser extension uses Manifest V3 with narrow local-only permissions", () => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "manifest.json"), "utf8"));
+  const background = fs.readFileSync(path.join(__dirname, "..", "extension", "background.js"), "utf8");
+
+  assert.equal(manifest.manifest_version, 3);
+  assert.deepEqual(manifest.permissions.sort(), ["contextMenus", "storage"]);
+  assert.equal(manifest.host_permissions, undefined);
+  assert.equal(manifest.action.default_popup, undefined);
+  assert.match(background, /contexts:\s*\["selection"\]/);
+  assert.match(background, /chrome\.storage\.session/);
+  assert.doesNotMatch(JSON.stringify(manifest), /clipboardRead|clipboardWrite|<all_urls>|activeTab|tabs/);
+});
+
+test("extension toolbar and selection menu open the local scanner", async () => {
+  const source = fs.readFileSync(path.join(__dirname, "..", "extension", "background.js"), "utf8");
+  const listeners = {};
+  const menus = [];
+  const opened = [];
+  const stored = [];
+  const chrome = {
+    runtime: {
+      getURL: (file) => `chrome-extension://paste-xray/${file}`,
+      onInstalled: { addListener: (listener) => { listeners.installed = listener; } },
+    },
+    action: { onClicked: { addListener: (listener) => { listeners.action = listener; } } },
+    contextMenus: {
+      removeAll: async () => {},
+      create: (menu) => menus.push(menu),
+      onClicked: { addListener: (listener) => { listeners.menu = listener; } },
+    },
+    storage: { session: { set: async (value) => stored.push(value) } },
+    tabs: { create: async (options) => opened.push(options) },
+  };
+
+  vm.runInNewContext(source, { chrome, crypto: { randomUUID: () => "unit-scan" }, Date, Math });
+
+  listeners.installed();
+  listeners.action();
+  listeners.menu({ menuItemId: "paste-xray-scan-selection", selectionText: "https://раypal.com" });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.deepEqual([...menus[0].contexts], ["selection"]);
+  assert.equal(opened[0].url, "chrome-extension://paste-xray/index.html#top");
+  assert.equal(stored[0]["paste_xray_unit-scan"].text, "https://раypal.com");
+  assert.equal(
+    opened[1].url,
+    "chrome-extension://paste-xray/index.html?scan=paste_xray_unit-scan#top",
+  );
+});
+
+test("right-click selection is loaded once and removed from extension memory", async () => {
+  const { context, elements } = createContext();
+  const removed = [];
+  const replaced = [];
+
+  context.chrome = {
+    storage: {
+      session: {
+        get: async (key) => ({
+          [key]: { text: "https://раypal.com/verify", truncated: false },
+        }),
+        remove: async (key) => removed.push(key),
+      },
+    },
+  };
+  context.location = { search: "?scan=selection-1", pathname: "/index.html", hash: "#top" };
+  context.history = { replaceState: (...args) => replaced.push(args) };
+
+  await vm.runInContext("loadExtensionSelection()", context);
+
+  assert.equal(elements.get("#text-input").value, "https://раypal.com/verify");
+  assert.equal(elements.get("#clipboard-status").textContent, "已载入网页选中文字");
+  assert.deepEqual(removed, ["selection-1"]);
+  assert.equal(replaced.length, 1);
+  assert.equal(vm.runInContext("state.source.kind", context), "extension");
+  assert.ok(Number(elements.get("#issue-count").textContent) > 0);
 });

@@ -28,6 +28,7 @@ const copyLabel = document.querySelector("#copy-label");
 const sampleButton = document.querySelector("#sample-button");
 const reportButton = document.querySelector("#report-button");
 const toast = document.querySelector("#toast");
+const runtimeNote = document.querySelector("#runtime-note");
 const cleanControls = [...document.querySelectorAll(".clean-options input")];
 
 const cleanZero = document.querySelector("#clean-zero");
@@ -747,6 +748,9 @@ function sourceLabel(source = state.source) {
     return `${source.name}${source.modified ? "（读取后已编辑）" : ""} · ${formatFileSize(source.size)}`;
   }
   if (source.kind === "clipboard") return "剪贴板粘贴";
+  if (source.kind === "extension") {
+    return source.truncated ? "浏览器选中文字（只检查前 100 万字）" : "浏览器选中文字";
+  }
   if (source.kind === "sample") return "内置问题样本";
   if (source.kind === "manual") return "手动输入";
   return "未记录";
@@ -982,6 +986,42 @@ function showToast(message) {
   showToast.timer = window.setTimeout(() => toast.classList.remove("is-visible"), 1800);
 }
 
+async function loadExtensionSelection() {
+  const extensionStorage = globalThis.chrome?.storage?.session;
+  if (!extensionStorage || typeof location === "undefined") return;
+
+  const scanKey = new URLSearchParams(location.search).get("scan");
+  if (!scanKey) return;
+
+  try {
+    const stored = await extensionStorage.get(scanKey);
+    await extensionStorage.remove(scanKey);
+    const payload = stored?.[scanKey];
+    if (!payload || typeof payload.text !== "string") return;
+
+    input.value = payload.text;
+    state.html = "";
+    state.source = {
+      kind: "extension",
+      name: "",
+      size: 0,
+      modified: false,
+      truncated: Boolean(payload.truncated),
+    };
+    clipboardStatus.textContent = payload.truncated
+      ? "选中文字过长，已载入前 100 万字"
+      : "已载入网页选中文字";
+    analyze();
+    input.focus();
+
+    if (typeof history !== "undefined" && history.replaceState) {
+      history.replaceState({}, "", `${location.pathname}${location.hash || ""}`);
+    }
+  } catch {
+    clipboardStatus.textContent = "无法读取选中文字，请返回网页重新选择";
+  }
+}
+
 input.addEventListener("input", () => {
   if (!input.value) state.html = "";
   if (state.pendingPaste) {
@@ -1087,4 +1127,9 @@ copyButton.addEventListener("click", async () => {
   }, 1500);
 });
 
+if (globalThis.chrome?.runtime?.id && runtimeNote) {
+  runtimeNote.textContent = "浏览器插件 · 仅在本机处理";
+}
+
 analyze();
+void loadExtensionSelection();
