@@ -26,12 +26,12 @@ Paste X-Ray 会把这些东西直接标出来。你不需要了解字符编码�
 
 插件版支持 Chrome 和 Edge。点击工具栏图标可以打开完整检测页；在网页中选中文字后点右键，也可以直接送进 Paste X-Ray 检查。
 
-目前先提供本地安装版：
+目前先提供预发布版。前往 [Releases](https://github.com/nisconder/paste-xray/releases) 下载最新的 `paste-xray-extension-*.zip`：
 
-1. 点击 GitHub 页面右上角的 **Code → Download ZIP**，下载并解压项目。
+1. 下载插件 ZIP 并解压。
 2. Chrome 打开 `chrome://extensions`；Edge 打开 `edge://extensions`。
 3. 打开页面上的“开发者模式”。
-4. 点击“加载已解压的扩展程序”，选择包含 `manifest.json` 的项目文件夹。
+4. 点击“加载已解压的扩展程序”，选择解压后的文件夹。
 5. 把 Paste X-Ray 固定到浏览器工具栏，即可随时使用。
 
 插件只申请“添加右键菜单”和“临时传递选中文字”两项权限，不读取全部网页，也不主动读取剪贴板。选中的文字被检测页取走后，会立即从插件临时内存中删除。
@@ -91,6 +91,14 @@ node --test tests/app.test.cjs
 ```
 
 自动测试覆盖隐藏字符、冒牌字母、文件读取、误报保护、清理结果和扫描报告。
+
+## 构建插件包
+
+```powershell
+pwsh -File scripts/build-extension.ps1 -Version 1.0.0-beta.1
+```
+
+构建结果和对应的 SHA-256 校验文件会写入 `dist` 目录。
 
 ## 反馈
 
