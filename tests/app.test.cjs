@@ -237,7 +237,7 @@ test("distinguishes normal typography, contextual characters, and risky controls
 
   const replacement = findings.find(({ short }) => short === "REPL");
   assert.equal(replacement.recovery, "无法恢复");
-  assert.match(replacement.action, /正确编码重新打开/);
+  assert.match(replacement.action, /原来的应用或记事本重新打开/);
 });
 
 test("default cleaning removes risky controls and normalizes special spaces", () => {
@@ -275,7 +275,7 @@ test("replacement character produces a concrete unrecoverable verdict", () => {
   vm.runInContext("analyze()", context);
 
   assert.equal(elements.get("#verdict-title").textContent, "原字符已经丢失");
-  assert.match(elements.get("#verdict-copy").textContent, /正确编码重新打开/);
+  assert.match(elements.get("#verdict-copy").textContent, /原来的应用或记事本重新打开/);
   assert.equal(elements.get("#issue-count").textContent, 2);
 });
 
@@ -343,7 +343,8 @@ test("standalone HTML report escapes scanned text and includes findings", () => 
   assert.match(report, /Content-Security-Policy/);
   assert.match(report, /&lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt;/);
   assert.doesNotMatch(report, /<script>/);
-  assert.match(report, /CYR→p/);
+  assert.match(report, /≈p/);
+  assert.match(report, /冒牌字母/);
   assert.match(report, /分享前请确认其中没有密码、密钥、个人信息/);
 });
 
@@ -353,7 +354,7 @@ test("input UI exposes local file drop and report export controls", () => {
   assert.match(html, /id="file-input"[^>]+type="file"/s);
   assert.match(html, /id="file-drop-overlay"/);
   assert.match(html, /id="report-button"[^>]+disabled/);
-  assert.match(html, /独立 HTML/);
+  assert.match(html, /网页报告 · 可保存分享/);
 });
 
 test("destructive cleaning choices are disabled by default in the interface", () => {
@@ -403,7 +404,7 @@ test("problem sample tells a coherent high-stakes AI-copy scenario", () => {
   const source = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
   assert.match(source, /先别直接使用：这段内容从 AI 回答复制而来/);
   assert.match(source, /却藏着\\u200B肉眼看不见的字符/);
-  assert.match(source, /原字符已经丢失\\u2060\\uFFFD/);
+  assert.match(source, /一个字符已经丢失\\u2060\\uFFFD/);
   assert.match(source, /可疑文件：src\/\\u202Etxt\.exe\\u202C/);
 });
 

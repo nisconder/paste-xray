@@ -266,8 +266,8 @@ function annotateHomoglyphs(tokens) {
       value: token.value,
       index: token.index,
       type: "homoglyph",
-      short: `${match.label}→${match.skeleton}`,
-      name: `${match.script} character resembling Latin ${match.skeleton}`,
+      short: `≈${match.skeleton}`,
+      name: `${match.script === "Cyrillic" ? "西里尔" : "希腊"}字符，外形接近字母 ${match.skeleton}`,
       code: codePointLabel(token.value),
       script: match.script,
       skeleton: match.skeleton,
@@ -345,7 +345,7 @@ async function loadTextFile(file) {
   try {
     text = decodeTextBuffer(await file.arrayBuffer());
   } catch {
-    throw new Error("无法按 UTF-8 或带 BOM 的 UTF-16 读取；请先用正确编码另存为文本文件。");
+    throw new Error("这个文件的文字格式无法识别。请先用记事本打开并重新保存，再拖进来检查。");
   }
 
   state.html = "";
@@ -500,9 +500,9 @@ function assessFindings(findings) {
       }
     } else if (finding.type === "homoglyph") {
       severity = "risk";
-      explanation = `同一片段混用了 ${finding.mixedScripts.join(" + ")} 字符；${finding.value} 看起来像 Latin ${finding.skeleton}，实际编码不同`;
-      origin = "可能是正常的多语言拼写，也可能被用于伪装域名、账号、文件名或代码标识符";
-      action = `核对“${finding.run}”的真实来源；不要直接登录、付款或执行，必要时手动改写为可信的 Latin ${finding.skeleton}`;
+      explanation = `“${finding.value}”看起来像字母 ${finding.skeleton}，但电脑会把它们当成两个不同字符`;
+      origin = "可能是正常的多语言文字，也可能被人用来伪装网址、账号、文件名或代码";
+      action = `先核对“${finding.run}”的来源，不要直接登录、付款或运行；重要地址建议自己重新输入`;
       recovery = "需人工确认";
     } else if (finding.type === "punct") {
       severity = "structure";
@@ -513,8 +513,8 @@ function assessFindings(findings) {
     } else if (finding.short === "REPL") {
       severity = "risk";
       explanation = "原字符已在上游解码时丢失，当前粘贴文本无法恢复";
-      origin = "通常是 UTF-8、GBK 等编码不匹配，或复制源本身已经损坏";
-      action = "回到原文件，用正确编码重新打开后再复制；删除 � 也无法猜回原字符";
+      origin = "通常是文件被错误方式打开，或复制来源本身已经损坏";
+      action = "回到原文件，用原来的应用或记事本重新打开后再复制；删除 � 也无法猜回原字符";
       recovery = "无法恢复";
     } else if (["control", "unknown"].includes(finding.type)) {
       severity = "risk";
@@ -598,8 +598,7 @@ function renderXray(tokens) {
 
 function friendlyFindingName(finding) {
   if (finding.type === "homoglyph") {
-    const scriptName = finding.script === "Cyrillic" ? "西里尔" : "希腊";
-    return `${scriptName}字符 ${finding.value}，形似 Latin ${finding.skeleton}`;
+    return `冒牌字母 ${finding.value}，看起来像 ${finding.skeleton}`;
   }
 
   const names = {
@@ -631,7 +630,7 @@ function friendlyFindingName(finding) {
 function buildAiCopyHint(findings) {
   const count = findings.filter((finding) => AI_COPY_MARKERS.has(finding.short)).length;
   if (!count) return "";
-  return `这段文字里藏着 ${count} 个肉眼看不见的 Unicode 字符。它们可能在复制 AI 回答、网页或 PDF 时被悄悄带入，造成搜索匹配失败、链接失效，或让代码和命令报错。先别直接使用，也别急着全部删除：请查看下方位置并核对来源。这些字符本身不能证明内容由 AI 生成。`;
+  return `这段文字里藏着 ${count} 个肉眼看不见的字符。它们可能在复制 AI 回答、网页或 PDF 时被悄悄带入，造成搜索匹配失败、链接失效，或让代码和命令报错。先别直接使用，也别急着全部删除：请查看下方位置并核对来源。这些字符本身不能证明内容由 AI 生成。`;
 }
 
 function contextSnippetForText(finding, text) {
@@ -870,7 +869,7 @@ function renderVerdict(findings) {
   const htmlNote = tagCount ? `剪贴板另含 ${tagCount} 个富文本标签。` : "";
   if (replacements > 0) {
     verdictTitle.textContent = "原字符已经丢失";
-    verdictCopy.textContent = `检测到 ${replacements} 个 �（U+FFFD）。请回到原文件，用正确编码重新打开后再复制；当前文本无法恢复这些字符。${notices ? `另有 ${notices} 个字符需要确认。` : ""}${htmlNote}`;
+    verdictCopy.textContent = `发现 ${replacements} 个 �，说明文字在打开或复制时已经损坏。请回到原文件，用原来的应用或记事本重新打开后再复制；现在无法猜回丢失内容。${notices ? `另有 ${notices} 个字符需要确认。` : ""}${htmlNote}`;
   } else if (risks > 0) {
     verdictTitle.textContent = "建议检查";
     verdictCopy.textContent = `发现 ${risks} 个较高风险字符和 ${notices} 个需要确认的字符。${htmlNote}`;
@@ -1059,7 +1058,7 @@ showStructure.addEventListener("change", () => renderXray(state.tokens));
 sampleButton.addEventListener("click", () => {
   state.html = '<p style="font-family: Arial">Invoice&nbsp;<strong>#2048</strong><span style="display:none">tracking</span></p>';
   state.source = { kind: "sample", name: "", size: 0, modified: false };
-  input.value = "先别直接使用：这段内容从 AI 回答复制而来，看起来完全正常，却藏着\u200B肉眼看不见的字符。\r\n编码警告：这里的原字符已经丢失\u2060\uFFFD，复制后的内容可能无法恢复。\r\n订单状态：Invoice\u00A0#2048 — approved\r\n仿冒链接：https://\u0440\u0430ypal.com/verify\r\n可疑文件：src/\u202Etxt.exe\u202C";
+  input.value = "先别直接使用：这段内容从 AI 回答复制而来，看起来完全正常，却藏着\u200B肉眼看不见的字符。\r\n损坏警告：这里有一个字符已经丢失\u2060\uFFFD，复制后的内容可能无法恢复。\r\n订单状态：Invoice\u00A0#2048 — approved\r\n仿冒链接：https://\u0440\u0430ypal.com/verify\r\n可疑文件：src/\u202Etxt.exe\u202C";
   clipboardStatus.textContent = "已载入演示样本";
   analyze();
   input.focus();

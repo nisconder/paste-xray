@@ -9,7 +9,7 @@
     />
     <meta name="color-scheme" content="light" />
     <title>Paste X-Ray — 看见文本里的隐形字符</title>
-    <link rel="stylesheet" href="styles.css?v=20260830-2" />
+    <link rel="stylesheet" href="styles.css?v=20260830-3" />
   </head>
   <body>
     <div class="page-shell">
@@ -39,7 +39,7 @@
               <span class="hero-title-line hero-title-accent">留下指纹。</span>
             </h1>
             <p class="hero-lede">
-              粘贴文字或拖入文本文件，立即找出零宽字符、视觉混淆字符、双向文本控制符、异常换行，以及剪贴板暗藏的 HTML。
+              把文字粘贴进来，或直接拖入文件。它会标出肉眼看不见的字符、冒牌字母、异常换行和偷偷附带的网页内容。
             </p>
           </div>
           <div class="specimen" aria-hidden="true">
@@ -62,7 +62,7 @@
               </div>
               <div class="input-actions">
                 <label class="text-button file-button" for="file-input">
-                  选择文本文件
+                  打开文件
                   <input
                     class="sr-only"
                     id="file-input"
@@ -80,7 +80,7 @@
                 id="text-input"
                 spellcheck="false"
                 autocomplete="off"
-                placeholder="在这里粘贴文本，或拖入 UTF-8 / UTF-16 文本文件…"
+                placeholder="在这里粘贴文字，或直接把文件拖进来…"
               ></textarea>
               <div class="file-drop-overlay" id="file-drop-overlay" aria-hidden="true">
                 <b>放开文件，立即扫描</b>
@@ -121,7 +121,7 @@
             </dl>
             <button class="report-button" id="report-button" type="button" disabled>
               <span>导出扫描报告</span>
-              <small>独立 HTML · 包含扫描内容</small>
+              <small>网页报告 · 可保存分享</small>
             </button>
           </aside>
         </section>
@@ -168,8 +168,8 @@
                 <p class="step-label">INPUT SOURCE</p>
                 <h3 id="source-title">检查输入携带的内容</h3>
                 <p>
-                  粘贴可能同时携带纯文本和 HTML，拖入文件则会保留文件名、体积与编码痕迹。
-                  这里用来判断异常来自文字本身，还是输入来源附带的结构。
+                  从网页粘贴时，文字背后可能还跟着标签、样式和链接；拖入文件时，这里会显示文件名和大小。
+                  用它判断问题来自文字本身，还是复制来源附带的内容。
                 </p>
               </div>
               <div class="source-toolbar">
@@ -280,6 +280,6 @@
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=20260830-2" defer></script>
+    <script src="app.js?v=20260830-3" defer></script>
   </body>
 </html>
