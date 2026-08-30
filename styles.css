@@ -335,6 +335,22 @@ input:focus-visible {
   font-weight: 750;
 }
 
+.input-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 20px;
+}
+
+.file-button {
+  cursor: pointer;
+}
+
+.file-button:focus-within {
+  outline: 3px solid var(--orange);
+  outline-offset: 3px;
+}
+
 .textarea-wrap {
   position: relative;
   min-height: 315px;
@@ -358,6 +374,44 @@ textarea {
 
 textarea::placeholder {
   color: #9ca5ba;
+}
+
+.file-drop-overlay {
+  position: absolute;
+  z-index: 3;
+  inset: 10px;
+  display: grid;
+  place-content: center;
+  gap: 7px;
+  border: 2px dashed var(--blue);
+  border-radius: 6px;
+  background: rgba(244, 246, 251, 0.96);
+  color: var(--ink);
+  pointer-events: none;
+  text-align: center;
+  opacity: 0;
+  transform: scale(0.985);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.file-drop-overlay b {
+  color: var(--blue);
+  font: 850 1rem var(--display);
+  letter-spacing: -0.02em;
+}
+
+.file-drop-overlay span {
+  color: var(--ink-soft);
+  font: 0.68rem var(--mono);
+}
+
+.textarea-wrap.is-dragging .file-drop-overlay {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.textarea-wrap.is-dragging .empty-hint {
+  opacity: 0;
 }
 
 .empty-hint {
@@ -517,6 +571,46 @@ textarea::placeholder {
 .quick-stats dd {
   margin: 0;
   font: 700 1rem var(--mono);
+}
+
+.report-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 25px;
+  padding: 13px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 5px;
+  background: var(--white);
+  box-shadow: 4px 4px 0 var(--marker);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+
+.report-button span {
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.report-button small {
+  color: var(--ink-soft);
+  font: 0.56rem var(--mono);
+  white-space: nowrap;
+}
+
+.report-button:hover:not(:disabled) {
+  box-shadow: 6px 6px 0 var(--marker);
+  transform: translate(-1px, -1px);
+}
+
+.report-button:disabled {
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.42;
 }
 
 .results {
@@ -1325,6 +1419,12 @@ footer p {
 
   .text-button {
     margin-top: 16px;
+  }
+
+  .input-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 0 20px;
   }
 
   .textarea-wrap,

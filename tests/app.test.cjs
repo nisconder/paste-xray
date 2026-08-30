@@ -73,6 +73,7 @@ function createContext() {
 
   const context = vm.createContext({
     DOMParser: FakeDOMParser,
+    TextDecoder,
     console,
     document,
     navigator: { clipboard: { writeText: async () => {} } },
@@ -282,6 +283,77 @@ test("HTML tag counter reports clipboard markup", () => {
   const { context } = createContext();
   const count = vm.runInContext(`countHtmlTags("<p>Hello <strong>world</strong><span hidden>x</span></p>")`, context);
   assert.equal(count, 3);
+});
+
+test("flags mixed-script homoglyphs in domains without accusing normal Cyrillic text", () => {
+  const { context } = createContext();
+  const suspicious = evaluate(
+    context,
+    `assessFindings(buildFindings(tokenize("https://\u0440\u0430ypal.com/login")))`,
+  );
+  const normal = evaluate(
+    context,
+    `assessFindings(buildFindings(tokenize("Привет мир")))`,
+  );
+
+  assert.deepEqual(suspicious.map(({ type, skeleton, severity }) => [type, skeleton, severity]), [
+    ["homoglyph", "p", "risk"],
+    ["homoglyph", "a", "risk"],
+  ]);
+  assert.equal(normal.filter(({ type }) => type === "homoglyph").length, 0);
+});
+
+test("decodes UTF-8 and BOM-marked UTF-16 files while preserving the BOM for inspection", () => {
+  const { context } = createContext();
+  const utf8 = vm.runInContext(
+    `decodeTextBuffer(new Uint8Array([0xEF, 0xBB, 0xBF, 0x41]).buffer)`,
+    context,
+  );
+  const utf16 = vm.runInContext(
+    `decodeTextBuffer(new Uint8Array([0xFF, 0xFE, 0x41, 0x00]).buffer)`,
+    context,
+  );
+
+  assert.equal(utf8, "\uFEFFA");
+  assert.equal(utf16, "\uFEFFA");
+});
+
+test("loads an accepted local text file into the analyzer without a network step", async () => {
+  const { context, elements } = createContext();
+  context.testFile = {
+    name: "audit.txt",
+    type: "text/plain",
+    size: 5,
+    arrayBuffer: async () => new Uint8Array([0x68, 0x65, 0x6C, 0x6C, 0x6F]).buffer,
+  };
+
+  await vm.runInContext("loadTextFile(testFile)", context);
+
+  assert.equal(elements.get("#text-input").value, "hello");
+  assert.match(elements.get("#clipboard-status").textContent, /本地文件 · audit\.txt/);
+  assert.equal(vm.runInContext("state.source.kind", context), "file");
+});
+
+test("standalone HTML report escapes scanned text and includes findings", () => {
+  const { context, elements } = createContext();
+  elements.get("#text-input").value = '<script>alert("x")</script> https://\u0440\u0430ypal.com';
+  vm.runInContext("analyze()", context);
+  const report = vm.runInContext(`buildReportHtml(new Date("2026-08-30T00:00:00Z"))`, context);
+
+  assert.match(report, /Content-Security-Policy/);
+  assert.match(report, /&lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt;/);
+  assert.doesNotMatch(report, /<script>/);
+  assert.match(report, /CYR→p/);
+  assert.match(report, /分享前请确认其中没有密码、密钥、个人信息/);
+});
+
+test("input UI exposes local file drop and report export controls", () => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+
+  assert.match(html, /id="file-input"[^>]+type="file"/s);
+  assert.match(html, /id="file-drop-overlay"/);
+  assert.match(html, /id="report-button"[^>]+disabled/);
+  assert.match(html, /独立 HTML/);
 });
 
 test("destructive cleaning choices are disabled by default in the interface", () => {

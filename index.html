@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Paste X-Ray reveals zero-width characters, non-breaking spaces, bidi controls, unusual line endings, and hidden clipboard HTML."
+      content="Paste X-Ray scans pasted text and local files for zero-width characters, homoglyphs, bidi controls, unusual line endings, and hidden clipboard HTML."
     />
     <meta name="color-scheme" content="light" />
     <title>Paste X-Ray — 看见文本里的隐形字符</title>
-    <link rel="stylesheet" href="styles.css?v=20260830-1" />
+    <link rel="stylesheet" href="styles.css?v=20260830-2" />
   </head>
   <body>
     <div class="page-shell">
@@ -39,7 +39,7 @@
               <span class="hero-title-line hero-title-accent">留下指纹。</span>
             </h1>
             <p class="hero-lede">
-              粘贴一段看似正常的文本，立即找出零宽字符、NBSP、双向文本控制符、异常换行，以及剪贴板暗藏的 HTML。
+              粘贴文字或拖入文本文件，立即找出零宽字符、视觉混淆字符、双向文本控制符、异常换行，以及剪贴板暗藏的 HTML。
             </p>
           </div>
           <div class="specimen" aria-hidden="true">
@@ -58,9 +58,20 @@
             <div class="panel-heading">
               <div>
                 <p class="step-label">01 / INPUT</p>
-                <h2>粘贴原文</h2>
+                <h2>放入原文</h2>
               </div>
-              <button class="text-button" id="sample-button" type="button">载入问题样本</button>
+              <div class="input-actions">
+                <label class="text-button file-button" for="file-input">
+                  选择文本文件
+                  <input
+                    class="sr-only"
+                    id="file-input"
+                    type="file"
+                    accept="text/*,.txt,.md,.csv,.tsv,.json,.xml,.html,.htm,.css,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.java,.c,.cpp,.h,.hpp,.go,.rs,.php,.rb,.sh,.ps1,.sql,.yaml,.yml,.toml,.ini,.log,.svg"
+                  />
+                </label>
+                <button class="text-button" id="sample-button" type="button">载入问题样本</button>
+              </div>
             </div>
 
             <label class="sr-only" for="text-input">要检查的文本</label>
@@ -69,8 +80,12 @@
                 id="text-input"
                 spellcheck="false"
                 autocomplete="off"
-                placeholder="在这里粘贴文本…"
+                placeholder="在这里粘贴文本，或拖入 UTF-8 / UTF-16 文本文件…"
               ></textarea>
+              <div class="file-drop-overlay" id="file-drop-overlay" aria-hidden="true">
+                <b>放开文件，立即扫描</b>
+                <span>文件只在当前浏览器中读取</span>
+              </div>
               <div class="empty-hint" id="empty-hint" aria-hidden="true">
                 <span>Ctrl</span><b>+</b><span>V</span>
               </div>
@@ -104,6 +119,10 @@
                 <dd id="structure-count">—</dd>
               </div>
             </dl>
+            <button class="report-button" id="report-button" type="button" disabled>
+              <span>导出扫描报告</span>
+              <small>独立 HTML · 包含扫描内容</small>
+            </button>
           </aside>
         </section>
 
@@ -146,11 +165,11 @@
 
             <section class="source-card" aria-labelledby="source-title">
               <div class="source-intro">
-                <p class="step-label">CLIPBOARD SOURCE</p>
-                <h3 id="source-title">检查粘贴时附带的内容</h3>
+                <p class="step-label">INPUT SOURCE</p>
+                <h3 id="source-title">检查输入携带的内容</h3>
                 <p>
-                  一次粘贴可能同时携带纯文本和 HTML。这里用来判断异常来自文字本身，
-                  还是网页、文档或富文本编辑器附带的隐藏标签、样式和链接。
+                  粘贴可能同时携带纯文本和 HTML，拖入文件则会保留文件名、体积与编码痕迹。
+                  这里用来判断异常来自文字本身，还是输入来源附带的结构。
                 </p>
               </div>
               <div class="source-toolbar">
@@ -261,6 +280,6 @@
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=20260830-1" defer></script>
+    <script src="app.js?v=20260830-2" defer></script>
   </body>
 </html>
