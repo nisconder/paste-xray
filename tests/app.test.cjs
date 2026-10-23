@@ -20,12 +20,13 @@ class FakeElement {
     this.style = {};
     this.textContent = "";
     this.value = "";
+    this.children = [];
   }
 
   addEventListener() {}
-  append() {}
+  append(...children) { this.children.push(...children); }
   focus() {}
-  replaceChildren() {}
+  replaceChildren(...children) { this.children = children; }
   setAttribute() {}
 }
 
@@ -302,6 +303,85 @@ test("flags mixed-script homoglyphs in domains without accusing normal Cyrillic 
     ["homoglyph", "a", "risk"],
   ]);
   assert.equal(normal.filter(({ type }) => type === "homoglyph").length, 0);
+});
+
+test("homoglyph runs keep boundaries, script order, and Unicode positions", () => {
+  const { context } = createContext();
+  const cases = [
+    ["aа", [[1, "aа", ["Latin", "Cyrillic"]]]],
+    ["аa", [[0, "аa", ["Cyrillic", "Latin"]]]],
+    ["αа", [[1, "αа", ["Greek", "Cyrillic"]]]],
+    ["а._:@/\\-9a", [[0, "а._:@/\\-9a", ["Cyrillic", "Latin"]]]],
+    ["a а\na а\u200Ba а\u0301a а中a", []],
+    ["😀\r\naа!οx", [[4, "aа", ["Latin", "Cyrillic"]], [6, "οx", ["Greek", "Latin"]]]],
+    ["а-a а а\r\na", [[0, "а-a", ["Cyrillic", "Latin"]]]],
+  ];
+
+  for (const [text, expected] of cases) {
+    context.runText = text;
+    const findings = evaluate(context,
+      `buildFindings(tokenize(runText)).filter(({ type }) => type === "homoglyph")
+        .map(({ index, run, mixedScripts }) => [index, run, mixedScripts])`);
+    assert.deepEqual(findings, expected, JSON.stringify(text));
+  }
+});
+
+test("homoglyph annotation preserves an existing finding", () => {
+  const { context } = createContext();
+  const result = evaluate(context, `(() => {
+    const original = { type: "existing", short: "KEEP" };
+    const tokens = [{ value: "а", index: 0, finding: original }, { value: "a", index: 1, finding: null }];
+    annotateHomoglyphs(tokens);
+    return { preserved: tokens[0].finding === original, finding: tokens[0].finding, other: tokens[1].finding };
+  })()`);
+  assert.deepEqual(result, { preserved: true, finding: { type: "existing", short: "KEEP" }, other: null });
+});
+
+test("long mixed-script runs require linear work instead of rescanning per candidate", () => {
+  const { context } = createContext();
+  vm.runInContext(`
+    const originalRunCheck = isSpoofRunCharacter;
+    const originalScriptCheck = characterScript;
+    let runChecks = 0;
+    let scriptChecks = 0;
+    isSpoofRunCharacter = (value) => { runChecks += 1; return originalRunCheck(value); };
+    characterScript = (value) => { scriptChecks += 1; return originalScriptCheck(value); };
+  `, context);
+
+  for (const size of [2000, 4000, 8000, 16000]) {
+    context.runSize = size;
+    // The timeout is a guard for a regression; operation counts make the linear
+    // bound independent of CI speed. Do not serialize every repeated run string.
+    const stats = JSON.parse(vm.runInContext(`JSON.stringify((() => {
+      runChecks = 0;
+      scriptChecks = 0;
+      const tokens = tokenize("aа".repeat(runSize / 2));
+      const findings = buildFindings(tokens);
+      return { runChecks, scriptChecks, count: findings.length,
+        lastIndex: findings.at(-1).index, runLength: findings[0].run.length };
+    })())`, context, { timeout: 5000 }));
+    assert.ok(stats.runChecks <= size * 2, `${size} characters: ${stats.runChecks} run checks`);
+    assert.ok(stats.scriptChecks <= size, `${size} characters: ${stats.scriptChecks} script checks`);
+    assert.equal(stats.count, size / 2);
+    assert.equal(stats.lastIndex, size - 1);
+    assert.equal(stats.runLength, size);
+  }
+});
+
+test("x-ray DOM preview stays bounded while scanning and exporting the full text", () => {
+  const { context, elements } = createContext();
+  const limit = vm.runInContext("MAX_XRAY_TOKENS", context);
+  elements.get("#text-input").value = "\u200B".repeat(limit + 1);
+  vm.runInContext("analyze()", context);
+
+  const children = elements.get("#xray-output").children[0].children;
+  assert.equal(children.filter(({ className = "" }) => className.startsWith("xray-token ")).length, limit);
+  assert.match(children.at(-1).textContent, /已截断预览/);
+  assert.match(children.at(-1).textContent, /仍包含全文/);
+  assert.equal(Number(elements.get("#issue-count").textContent), limit + 1);
+  assert.equal(vm.runInContext("state.findings.at(-1).index", context), limit);
+  const report = vm.runInContext("buildReportXray(state.tokens)", context);
+  assert.equal((report.match(/class="token (?:risk|notice)"/g) || []).length, limit + 1);
 });
 
 test("decodes UTF-8 and BOM-marked UTF-16 files while preserving the BOM for inspection", () => {

@@ -772,6 +772,13 @@ textarea::placeholder {
   line-height: 1.7;
 }
 
+.result-preview-note {
+  margin: 18px 0 0;
+  color: var(--soft);
+  font-size: 0.88rem;
+  line-height: 1.7;
+}
+
 .evidence-grid {
   display: grid;
   grid-template-columns: 1fr;

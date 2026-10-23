@@ -147,6 +147,7 @@ const HOMOGLYPHS = new Map(
 );
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
+const MAX_XRAY_TOKENS = 10000;
 const TEXT_FILE_EXTENSIONS = new Set([
   "txt", "md", "csv", "tsv", "json", "xml", "html", "htm", "css", "js", "mjs", "cjs",
   "ts", "tsx", "jsx", "py", "java", "c", "cpp", "h", "hpp", "go", "rs", "php", "rb",
@@ -250,32 +251,46 @@ function isSpoofRunCharacter(value) {
 }
 
 function annotateHomoglyphs(tokens) {
-  tokens.forEach((token, tokenIndex) => {
-    const match = HOMOGLYPHS.get(token.value);
-    if (!match || token.finding) return;
+  let cursor = 0;
+  while (cursor < tokens.length) {
+    if (!isSpoofRunCharacter(tokens[cursor].value)) {
+      cursor += 1;
+      continue;
+    }
 
-    let start = tokenIndex;
-    let end = tokenIndex;
-    while (start > 0 && isSpoofRunCharacter(tokens[start - 1].value)) start -= 1;
-    while (end + 1 < tokens.length && isSpoofRunCharacter(tokens[end + 1].value)) end += 1;
+    // Inspect each contiguous run once, even when every other character is a
+    // candidate. Re-scanning the whole run per candidate makes long input quadratic.
+    const start = cursor;
+    const scripts = new Set();
+    const candidates = [];
+    while (cursor < tokens.length && isSpoofRunCharacter(tokens[cursor].value)) {
+      const token = tokens[cursor];
+      const script = characterScript(token.value);
+      if (script) scripts.add(script);
+      const match = HOMOGLYPHS.get(token.value);
+      if (match && !token.finding) candidates.push({ token, match });
+      cursor += 1;
+    }
+    if (scripts.size < 2 || !candidates.length) continue;
 
-    const run = tokens.slice(start, end + 1);
-    const scripts = new Set(run.map(({ value }) => characterScript(value)).filter(Boolean));
-    if (scripts.size < 2) return;
-
-    token.finding = {
-      value: token.value,
-      index: token.index,
-      type: "homoglyph",
-      short: `≈${match.skeleton}`,
-      name: `${match.script === "Cyrillic" ? "西里尔" : "希腊"}字符，外形接近字母 ${match.skeleton}`,
-      code: codePointLabel(token.value),
-      script: match.script,
-      skeleton: match.skeleton,
-      mixedScripts: [...scripts],
-      run: run.map(({ value }) => value).join(""),
-    };
-  });
+    // Share the run text and script summary instead of copying them per finding.
+    const run = tokens.slice(start, cursor).map(({ value }) => value).join("");
+    const mixedScripts = [...scripts];
+    candidates.forEach(({ token, match }) => {
+      token.finding = {
+        value: token.value,
+        index: token.index,
+        type: "homoglyph",
+        short: `≈${match.skeleton}`,
+        name: `${match.script === "Cyrillic" ? "西里尔" : "希腊"}字符，外形接近字母 ${match.skeleton}`,
+        code: codePointLabel(token.value),
+        script: match.script,
+        skeleton: match.skeleton,
+        mixedScripts,
+        run,
+      };
+    });
+  }
 }
 
 function tokenize(text) {
@@ -572,7 +587,7 @@ function renderXray(tokens) {
     normalBuffer = "";
   };
 
-  tokens.forEach(({ value, finding }) => {
+  tokens.slice(0, MAX_XRAY_TOKENS).forEach(({ value, finding }) => {
     if (!finding || (isCollapsibleStructure(finding) && !showStructure.checked)) {
       normalBuffer += value;
       return;
@@ -594,6 +609,12 @@ function renderXray(tokens) {
   });
 
   flushNormal();
+  if (tokens.length > MAX_XRAY_TOKENS) {
+    const note = document.createElement("p");
+    note.className = "result-preview-note";
+    note.textContent = "文本较长，显影区已截断预览；检测数量、明细和导出报告仍包含全文。";
+    fragment.append(note);
+  }
   xrayOutput.append(fragment);
 }
 
