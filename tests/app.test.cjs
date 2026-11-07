@@ -30,7 +30,7 @@ class FakeElement {
   setAttribute() {}
 }
 
-function createContext() {
+function createContext(Worker) {
   const elements = new Map();
   const get = (selector) => {
     if (!elements.has(selector)) elements.set(selector, new FakeElement());
@@ -77,6 +77,7 @@ function createContext() {
     TextDecoder,
     URLSearchParams,
     console,
+    Worker,
     document,
     navigator: { clipboard: { writeText: async () => {} } },
     setTimeout,
@@ -87,6 +88,7 @@ function createContext() {
     },
   });
 
+  vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "core.js"), "utf8"), context);
   const source = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
   vm.runInContext(source, context);
   return { context, elements };
@@ -496,6 +498,43 @@ test("deployed CSS and JavaScript URLs carry the same cache-busting version", ()
 
   assert.ok(styleVersion);
   assert.equal(scriptVersion, styleVersion);
+  assert.equal(html.match(/core\.js\?v=([^"']+)/)?.[1], styleVersion);
+  assert.ok(html.indexOf('src="core.js') < html.indexOf('src="app.js'));
+});
+
+test("background detection cancels stale work and cannot overwrite newer input", () => {
+  const workers = [];
+  class FakeWorker {
+    constructor() { workers.push(this); }
+    postMessage(data) { this.request = data; }
+    terminate() { this.terminated = true; }
+  }
+  const { context, elements } = createContext(FakeWorker);
+  elements.get("#text-input").value = "a".repeat(20000) + "\u202E";
+  vm.runInContext("analyze()", context);
+  assert.equal(workers.length, 1);
+  assert.equal(elements.get("#copy-button").disabled, true);
+  assert.equal(elements.get("#report-button").disabled, true);
+
+  elements.get("#text-input").value = "a".repeat(20000) + "\u200B";
+  vm.runInContext("analyze()", context);
+  assert.equal(workers[0].terminated, true);
+  const core = require("../core.js");
+  workers[0].onmessage({ data: { id: workers[0].request.id, ...core.analyzeText(workers[0].request.text) } });
+  assert.equal(evaluate(context, "state.findings.length"), 0);
+  workers[1].onmessage({ data: { id: workers[1].request.id, ...core.analyzeText(workers[1].request.text) } });
+  assert.equal(evaluate(context, "state.findings.at(-1).code"), "U+200B");
+  assert.equal(elements.get("#report-button").disabled, false);
+  assert.equal(workers[1].terminated, true);
+});
+
+test("Worker startup failures fall back to the same local engine", () => {
+  class BlockedWorker { constructor() { throw new Error("file origin policy"); } }
+  const { context, elements } = createContext(BlockedWorker);
+  elements.get("#text-input").value = "a".repeat(20000) + "\u202E";
+  vm.runInContext("analyze()", context);
+  assert.equal(evaluate(context, "state.findings.at(-1).code"), "U+202E");
+  assert.equal(elements.get("#report-button").disabled, false);
 });
 
 test("browser extension uses Manifest V3 with narrow local-only permissions", () => {

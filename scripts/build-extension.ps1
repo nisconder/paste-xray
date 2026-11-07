@@ -20,6 +20,8 @@ $packageFiles = @(
   "index.html",
   "styles.css",
   "app.js",
+  "core.js",
+  "analysis-worker.js",
   "LICENSE",
   "extension\background.js",
   "extension\INSTALL.md",
