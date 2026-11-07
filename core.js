@@ -263,7 +263,7 @@ function buildFindings(tokens) {
   return tokens.filter((token) => token.finding).map((token) => token.finding);
 }
 
-function assessFindings(findings) {
+function assessFindings(findings, { atDocumentStart = true } = {}) {
   const runPreviews = new Map();
   const lineFindings = findings.filter((finding) => finding.type === "line");
   const regularLines = lineFindings.filter((finding) => ["LF", "CRLF", "CR"].includes(finding.short));
@@ -345,7 +345,7 @@ function assessFindings(findings) {
         origin = "可能来自 AI 对话、网页、PDF 或富文本排版；仅凭它不能判断内容是否由 AI 生成";
         action = "普通文章中可结合排版判断；代码、链接、命令或标识符中建议删除";
         recovery = "可清理";
-      } else if (finding.short === "BOM" && finding.index > 0) {
+      } else if (finding.short === "BOM" && (finding.index > 0 || !atDocumentStart)) {
         severity = "risk";
         explanation = "出现在文本中部，可能影响比较、解析或搜索";
         origin = "常见于文件拼接或错误的编码转换";
@@ -429,9 +429,9 @@ function assessFindings(findings) {
   });
 }
 
-function analyzeText(text) {
+function analyzeText(text, options) {
   const tokens = tokenize(text);
-  return { tokens, findings: assessFindings(buildFindings(tokens)) };
+  return { tokens, findings: assessFindings(buildFindings(tokens), options) };
 }
 
 if (typeof module !== "undefined" && module.exports) {

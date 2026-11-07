@@ -82,7 +82,7 @@ function scanDiff(patch) {
         if (text.length > MAX_LINE_UNITS) throw new Error("An added line exceeds 200,000 UTF-16 units; split the change and retry");
         files.add(target);
         addedLines++;
-        const analysis = analyzeText(text);
+        const analysis = analyzeText(text, { atDocumentStart: lineNumber === 1 });
         for (const finding of analysis.findings) {
           if (finding.severity === "structure") continue;
           if (findings.length >= MAX_FINDINGS) throw new Error("More than 10,000 findings; split the change and retry");
