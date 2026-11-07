@@ -51,10 +51,18 @@ function scanDiff(patch) {
   let remainingOld = 0;
   let remainingNew = 0;
   let inHunk = false;
+  // 0: no text headers, 1: old header, 2: target header, 3: at least one hunk.
+  let headerState = 0;
   let skippedBinaryFiles = 0;
   const finishHunk = () => {
     if (inHunk && (remainingOld || remainingNew)) throw new Error("Truncated or malformed diff hunk");
     inHunk = false;
+  };
+  const finishFile = () => {
+    finishHunk();
+    if (headerState === 1 || headerState === 2) throw new Error("Incomplete text diff: file headers require a hunk");
+    headerState = 0;
+    target = null;
   };
 
   for (const raw of patch.split("\n")) {
@@ -66,13 +74,16 @@ function scanDiff(patch) {
       finishHunk();
       const match = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(line);
       if (!match) throw new Error("Malformed unified diff hunk header");
+      if (headerState !== 2 && headerState !== 3) throw new Error("Hunk has no complete file headers");
       if (target === null && Number(match[4] ?? 1) > 0) throw new Error("Hunk has no target file header");
       remainingOld = Number(match[2] ?? 1);
       remainingNew = Number(match[4] ?? 1);
       lineNumber = Number(match[3]);
       inHunk = true;
+      headerState = 3;
       continue;
     }
+    if (line.startsWith("@@")) throw new Error("Malformed unified diff hunk header");
     // Interpret hunk data before headers: added source lines may start with +++.
     if (inHunk && (remainingOld || remainingNew)) {
       if (line.startsWith("\\ No newline at end of file")) continue;
@@ -110,13 +121,18 @@ function scanDiff(patch) {
       }
       continue;
     }
-    if (line.startsWith("diff --git ")) { finishHunk(); target = null; }
-    else if (line.startsWith("--- ")) { finishHunk(); target = null; }
-    else if (line.startsWith("+++ ")) { finishHunk(); target = decodeGitPath(line.slice(4)); }
+    if (line.startsWith("diff --git ")) finishFile();
+    else if (line.startsWith("--- ")) { finishFile(); headerState = 1; }
+    else if (line.startsWith("+++ ")) {
+      finishHunk();
+      if (headerState !== 1) throw new Error("Target file header has no matching old file header");
+      target = decodeGitPath(line.slice(4));
+      headerState = 2;
+    }
     else if (line.startsWith("Binary files ") || line.startsWith("GIT binary patch")) skippedBinaryFiles++;
-    else if (/^[+ -]/.test(line) && inHunk) throw new Error("Diff hunk contains extra lines");
+    else if (/^[+ -]/.test(line)) throw new Error("Source line outside a diff hunk");
   }
-  finishHunk();
+  finishFile();
   // Refuse arbitrary input rather than returning a misleading clean result.
   if (patch.trim() && !/^diff --git |^--- |^Binary files |^GIT binary patch/m.test(patch)) {
     throw new Error("Expected a unified Git diff (empty input is allowed)");
@@ -168,7 +184,8 @@ function main(args) {
   }
   const buffer = mode === "--stdin" ? readStdin() : execFileSync("git", [
     "--no-pager", "-c", "core.quotepath=false", "diff", "--no-ext-diff", "--no-textconv",
-    "--no-color", "--no-renames", "--unified=0", ...(mode === "--staged" ? ["--cached"] : []), "--",
+    "--no-color", "--no-renames", "--src-prefix=a/", "--dst-prefix=b/", "--unified=0",
+    ...(mode === "--staged" ? ["--cached"] : []), "--",
   ], { maxBuffer: MAX_DIFF_BYTES, stdio: ["ignore", "pipe", "pipe"] });
   const patch = new TextDecoder("utf-8", { fatal: true }).decode(buffer);
   const result = scanDiff(patch);

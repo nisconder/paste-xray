@@ -85,6 +85,18 @@ test("invalid and truncated input fails instead of reporting a clean scan", () =
   assert.equal(run(["--stdin", "--fail-on", "wat"], "").status, 2);
 });
 
+test("malformed hunk markers and source lines outside hunks never fail open", () => {
+  const headers = "diff --git a/x b/x\n--- a/x\n+++ b/x\n";
+  for (const input of [headers + "@@INVALID\n+\u202E\n", headers + "+\u202E\n",
+    headers + "-removed\n", headers + " context\n", headers,
+    "diff --git a/x b/x\n+++ b/x\n@@ -0,0 +1 @@\n+\u202E\n",
+    patch("safe") + "+\u202E\n"]) {
+    const result = run(["--stdin"], input);
+    assert.equal(result.status, 2, input);
+    assert.equal(result.stdout, "");
+  }
+});
+
 test("CI exit policy distinguishes risk, notice, normal multilingual text and input errors", () => {
   assert.equal(run(["--stdin"], patch("\u202E")).status, 1);
   assert.equal(run(["--stdin"], patch("hello\u200B")).status, 0);
@@ -123,7 +135,10 @@ test("actual Git index is scanned by default, worktree is opt-in, files remain u
   try {
     const git = (...args) => execFileSync("git", args, { cwd: root, stdio: "pipe" });
     git("init", "--quiet");
-    const name = "中文 file.js";
+    // User Git configuration must not erase a real leading b/ path component.
+    git("config", "diff.noprefix", "true");
+    fs.mkdirSync(path.join(root, "b"));
+    const name = "b/中文 file.js";
     fs.writeFileSync(path.join(root, name), "first\nsecond\u202E\n");
     git("add", "--", name);
     fs.writeFileSync(path.join(root, name), "plain worktree\n");
