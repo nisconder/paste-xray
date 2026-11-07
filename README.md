@@ -76,10 +76,10 @@ node path/to/paste-xray/bin/diff-xray.cjs --worktree
 node path/to/paste-xray/bin/diff-xray.cjs --staged --json --fail-on notice
 
 # 检查指定提交之间的差异（执行命令时位于待检查仓库）
-git diff --no-ext-diff --no-textconv --no-color --unified=0 HEAD~1 HEAD -- | node path/to/paste-xray/bin/diff-xray.cjs --stdin
+git diff --no-ext-diff --no-textconv --no-color --src-prefix=a/ --dst-prefix=b/ --unified=0 HEAD~1 HEAD -- | node path/to/paste-xray/bin/diff-xray.cjs --stdin
 ```
 
-直接读取 Git 的模式会禁用 external diff 和 textconv，并读取实际暂存内容，而不是重新打开工作区文件。`--stdin` 接受 UTF-8 统一 diff；PowerShell 管道需保持 UTF-8 编码，旧版 Windows PowerShell 建议优先使用直接 Git 模式。三个输入模式互斥，`--staged` 为默认值。
+直接读取 Git 的模式会禁用 external diff 和 textconv，固定 `a/`、`b/` 前缀以覆盖用户的 `diff.noprefix` 设置，并读取实际暂存内容，而不是重新打开工作区文件。`--stdin` 接受 UTF-8 统一 diff；生成补丁时请像示例一样固定前缀，避免把真实的 `b/` 目录误认为 Git 前缀。PowerShell 管道需保持 UTF-8 编码，旧版 Windows PowerShell 建议优先使用直接 Git 模式。三个输入模式互斥，`--staged` 为默认值。
 
 退出码为 `0`（未达到失败阈值）、`1`（发现达到阈值的条目）、`2`（Git、格式或输入错误）。默认阈值是 `risk`：零宽空格、特殊空格等 `notice` 会报告但不阻断，`--fail-on notice` 可收紧，`--fail-on never` 可仅收集报告。自然语言、emoji 连接符和双向文字可能有正常用途，需结合上下文复核。
 
