@@ -600,6 +600,13 @@ function analyze() {
   renderXray([]);
   renderFindingList([]);
   renderSource();
+  verdictTitle.textContent = "正在检查当前文本";
+  verdictCopy.textContent = "全文检测在本机后台进行。完成后会显示当前文本的结果。";
+  issueCount.textContent = "…";
+  riskCount.textContent = "—";
+  noticeCount.textContent = "—";
+  structureCount.textContent = "—";
+  originHint.textContent = "";
   cleanOutput.textContent = "正在检查当前文本…";
   copyButton.disabled = true;
   reportButton.disabled = true;

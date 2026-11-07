@@ -67,6 +67,14 @@ test("empty, deletion-only and binary changes do not create false positive addit
   assert.equal(scanDiff("diff --git a/pic b/pic\nBinary files a/pic and b/pic differ\n").skippedBinaryFiles, 1);
 });
 
+test("BOM at a later target line is mid-document even when it starts an added line", () => {
+  const result = scanDiff(patch("\uFEFFtext").replace("+1 @@", "+20 @@"));
+  assert.equal(result.findings[0].line, 20);
+  assert.equal(result.findings[0].column, 1);
+  assert.equal(result.findings[0].severity, "risk");
+  assert.equal(scanDiff(patch("\uFEFFtext")).findings[0].severity, "notice");
+});
+
 test("invalid and truncated input fails instead of reporting a clean scan", () => {
   for (const input of ["hello", patch("ok").replace("+1 @@", "+1,2 @@"),
     "diff --cc x\n@@@ -1 -1 +1 @@@\n", "@@ -0,0 +1 @@\n+bad\n"]) {
