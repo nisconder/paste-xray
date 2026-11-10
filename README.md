@@ -26,7 +26,7 @@ Paste X-Ray 会把这些东西直接标出来。你不需要了解字符编码�
 
 插件版支持 Chrome 和 Edge。点击工具栏图标可以打开完整检测页；在网页中选中文字后点右键，也可以直接送进 Paste X-Ray 检查。
 
-目前先提供预发布版。前往 [Releases](https://github.com/nisconder/paste-xray/releases) 下载最新的 `paste-xray-extension-*.zip`：
+当前预发布版为 **1.0.0-beta.2**。前往 [Releases](https://github.com/nisconder/paste-xray/releases) 下载 `paste-xray-extension-1.0.0-beta.2.zip`：
 
 1. 下载插件 ZIP 并解压。
 2. Chrome 打开 `chrome://extensions`；Edge 打开 `edge://extensions`。
@@ -129,10 +129,12 @@ node --test tests/*.test.cjs
 ## 构建插件包
 
 ```powershell
-pwsh -File scripts/build-extension.ps1 -Version 1.0.0-beta.1
+pwsh -File scripts/build-extension.ps1 -Version 1.0.0-beta.2
 ```
 
 构建结果和对应的 SHA-256 校验文件会写入 `dist` 目录。
+
+扩展包只包含浏览器运行文件。Diff X-Ray CLI 请通过仓库源码或 Release 的源码包使用；它需要 `bin/diff-xray.cjs` 和同级仓库中的 `core.js`。
 
 ## 反馈
 

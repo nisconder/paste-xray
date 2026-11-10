@@ -1,7 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Paste X-Ray",
-  "version": "1.0.0",
+  "version": "1.0.0.2",
+  "version_name": "1.0.0-beta.2",
   "description": "检查选中文字和本地文件中的隐藏字符、冒牌字母与异常排版。所有分析都在浏览器本机完成。",
   "homepage_url": "https://nisconder.github.io/paste-xray/",
   "permissions": [
