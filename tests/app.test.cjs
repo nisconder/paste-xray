@@ -21,9 +21,11 @@ class FakeElement {
     this.textContent = "";
     this.value = "";
     this.children = [];
+    this.listeners = new Map();
   }
 
-  addEventListener() {}
+  addEventListener(type, listener) { this.listeners.set(type, listener); }
+  dispatch(type, event = {}) { return this.listeners.get(type)?.(event); }
   append(...children) { this.children.push(...children); }
   focus() {}
   replaceChildren(...children) { this.children = children; }
@@ -261,6 +263,75 @@ test("optional punctuation and newline cleaning is deterministic", () => {
 
   assert.equal(cleaned, '"A" - B...\nC\nD');
   assert.equal(changes, 6);
+});
+
+test("newline cleaning normalizes every diagnosed line separator and counts changes", () => {
+  const { context, elements } = createContext();
+  const text = "A\r\nB\rC\nD\u0085E\u2028F\u2029G";
+  context.sampleText = text;
+
+  assert.equal(vm.runInContext("cleanText(sampleText)", context), text);
+  assert.equal(vm.runInContext("countPlannedChanges(sampleText)", context), 0);
+  elements.get("#clean-lines").checked = true;
+
+  assert.equal(vm.runInContext("cleanText(sampleText)", context), "A\nB\nC\nD\nE\nF\nG");
+  assert.equal(vm.runInContext("countPlannedChanges(sampleText)", context), 5);
+});
+
+test("editing pasted text clears unrelated clipboard HTML", () => {
+  const { context, elements } = createContext();
+  const input = elements.get("#text-input");
+  input.dispatch("paste", {
+    clipboardData: { getData: () => "<p>original</p>", types: ["text/plain", "text/html"] },
+  });
+  input.value = "original";
+  input.dispatch("input");
+  assert.equal(vm.runInContext("state.html", context), "<p>original</p>");
+
+  input.value = "edited";
+  input.dispatch("input");
+  assert.equal(vm.runInContext("state.html", context), "");
+  assert.equal(elements.get("#html-tab-count").hidden, true);
+  assert.equal(elements.get("#clipboard-status").textContent, "手动输入");
+});
+
+test("a paste without an input event cannot mark a later edit as clipboard content", async () => {
+  const { context, elements } = createContext();
+  const input = elements.get("#text-input");
+  input.dispatch("paste", {
+    clipboardData: { getData: () => "<p>original</p>", types: ["text/html"] },
+  });
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  input.value = "typed later";
+  input.dispatch("input");
+
+  assert.equal(vm.runInContext("state.html", context), "");
+  assert.equal(elements.get("#clipboard-status").textContent, "手动输入");
+});
+
+test("copy reports success when the clipboard API is unavailable but fallback works", async () => {
+  const { context, elements } = createContext();
+  context.navigator.clipboard = undefined;
+  elements.get("#text-input").value = "copy me";
+  vm.runInContext("analyze()", context);
+  await elements.get("#copy-button").dispatch("click");
+
+  assert.equal(elements.get("#copy-label").textContent, "已复制");
+  assert.equal(elements.get("#toast").textContent, "清理后的文本已复制");
+});
+
+test("copy failure never reports success when both clipboard paths fail", async () => {
+  for (const fallback of [() => false, () => { throw new Error("unsupported"); }]) {
+    const { context, elements } = createContext();
+    context.navigator.clipboard.writeText = async () => { throw new Error("permission denied"); };
+    context.document.execCommand = fallback;
+    elements.get("#text-input").value = "copy me";
+    vm.runInContext("analyze()", context);
+    await elements.get("#copy-button").dispatch("click");
+
+    assert.equal(elements.get("#copy-label").textContent, "复制清理后的文本");
+    assert.match(elements.get("#toast").textContent, /复制失败/);
+  }
 });
 
 test("replacement character deletion is explicit and cannot imply recovery", () => {

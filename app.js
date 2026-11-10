@@ -510,7 +510,7 @@ function cleanText(text) {
   }
 
   if (cleanLines.checked) {
-    result = result.replace(/\r\n?/g, "\n");
+    result = result.replace(/\r\n?|[\u0085\u2028\u2029]/g, "\n");
   }
 
   return result;
@@ -529,7 +529,7 @@ function countPlannedChanges(text) {
   });
 
   if (cleanLines.checked) {
-    count += (text.match(/\r\n|\r/g) || []).length;
+    count += (text.match(/\r\n?|[\u0085\u2028\u2029]/g) || []).length;
   }
 
   return count;
@@ -678,7 +678,7 @@ async function loadExtensionSelection() {
 }
 
 input.addEventListener("input", () => {
-  if (!input.value) state.html = "";
+  if (!input.value || !state.pendingPaste) state.html = "";
   if (state.pendingPaste) {
     state.pendingPaste = false;
   } else if (!input.value) {
@@ -700,7 +700,10 @@ input.addEventListener("paste", (event) => {
   state.source = { kind: "clipboard", name: "", size: 0, modified: false };
   const types = [...(event.clipboardData?.types || [])];
   clipboardStatus.textContent = state.html ? "已读取纯文本 + HTML" : types.length ? "已读取纯文本" : "已粘贴";
-  window.setTimeout(analyze, 0);
+  window.setTimeout(() => {
+    state.pendingPaste = false;
+    analyze();
+  }, 0);
 });
 
 fileInput.addEventListener("change", () => handleFileList(fileInput.files));
@@ -751,6 +754,7 @@ cleanControls.forEach((control) => control.addEventListener("change", renderClea
 showStructure.addEventListener("change", () => renderXray(state.tokens));
 
 sampleButton.addEventListener("click", () => {
+  state.pendingPaste = false;
   state.html = '<p style="font-family: Arial">Invoice&nbsp;<strong>#2048</strong><span style="display:none">tracking</span></p>';
   state.source = { kind: "sample", name: "", size: 0, modified: false };
   input.value = "先别直接使用：这段内容从 AI 回答复制而来，看起来完全正常，却藏着\u200B肉眼看不见的字符。\r\n损坏警告：这里有一个字符已经丢失\u2060\uFFFD，复制后的内容可能无法恢复。\r\n订单状态：Invoice\u00A0#2048 — approved\r\n仿冒链接：https://\u0440\u0430ypal.com/verify\r\n可疑文件：src/\u202Etxt.exe\u202C";
@@ -763,16 +767,28 @@ reportButton.addEventListener("click", exportReport);
 
 copyButton.addEventListener("click", async () => {
   if (!state.plain) return;
+  let copied = false;
   try {
     await navigator.clipboard.writeText(state.cleaned);
+    copied = true;
   } catch {
-    const range = document.createRange();
-    const selection = window.getSelection();
-    range.selectNodeContents(cleanOutput);
-    selection.removeAllRanges();
-    selection.addRange(range);
-    document.execCommand("copy");
-    selection.removeAllRanges();
+    try {
+      const range = document.createRange();
+      const selection = window.getSelection();
+      range.selectNodeContents(cleanOutput);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      copied = document.execCommand("copy");
+      if (copied) selection.removeAllRanges();
+    } catch {
+      copied = false;
+    }
+  }
+
+  if (!copied) {
+    copyLabel.textContent = "复制清理后的文本";
+    showToast("复制失败，请选中清理预览后手动复制");
+    return;
   }
 
   copyLabel.textContent = "已复制";
